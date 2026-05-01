@@ -1,130 +1,43 @@
 import { NextResponse } from 'next/server'
 import { AI_MODEL, groq } from '@/lib/ai'
-import { getPersonalityPrompt, isPersonalityKey, type PersonalityKey } from '@/lib/personalities'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { firstWordsTitle } from '@/lib/utils'
+import { getPersonalityPrompt, isPersonalityKey, personalities, type PersonalityKey } from '@/lib/personalities'
 
 interface ChatRequestBody {
   message?: unknown
   personality?: unknown
-  sessionId?: unknown
-  regenerate?: unknown
 }
 
 function quietError(status: number) {
   return NextResponse.json({ error: 'Something went quiet. Try again in a moment.' }, { status })
 }
 
-function cleanTitle(title: string) {
-  return title
-    .trim()
-    .replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')
-    .replace(/[.!?。！？]+$/g, '')
-    .slice(0, 90)
+function streamText(text: string) {
+  const encoder = new TextEncoder()
+  const chunks = text.split(/(\s+)/)
+
+  return new ReadableStream({
+    start(controller) {
+      for (const chunk of chunks) {
+        controller.enqueue(encoder.encode(chunk))
+      }
+
+      controller.close()
+    },
+  })
 }
 
-async function generateTitle(originalText: string) {
-  const fallback = firstWordsTitle(originalText)
+function mockResponse(personality: PersonalityKey, message: string) {
+  const opening = message.length > 180 ? 'There is a lot here.' : 'I hear you.'
 
-  if (!groq) return fallback
-
-  try {
-    const completion = await groq.chat.completions.create({
-      model: AI_MODEL,
-      temperature: 0.45,
-      max_tokens: 32,
-      messages: [
-        {
-          role: 'system',
-          content:
-            'Generate a short, evocative title for this journal entry in 8 words or fewer. Return only the title. No quotes. No punctuation at the end. Make it feel human and specific, not generic.',
-        },
-        {
-          role: 'user',
-          content: `Entry: ${originalText}`,
-        },
-      ],
-    })
-
-    const title = cleanTitle(completion.choices[0]?.message?.content ?? '')
-    return title || fallback
-  } catch (error) {
-    console.error('Title generation failed', error)
-    return fallback
-  }
-}
-
-async function prepareSession(message: string, sessionId: string | null) {
-  const supabase = await createSupabaseServerClient()
-  if (!supabase) return { supabase: null, sessionId: null, created: false }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) return { supabase, sessionId: null, created: false }
-  if (sessionId) return { supabase, sessionId, created: false }
-
-  const { data, error } = await supabase
-    .from('sessions')
-    .insert({
-      user_id: user.id,
-      original_text: message,
-      title: firstWordsTitle(message),
-    })
-    .select('id')
-    .single()
-
-  if (error) {
-    console.error('Session insert failed', error)
-    return { supabase, sessionId: null, created: false }
+  const copy: Record<PersonalityKey, string> = {
+    cotton: `${opening} Let it be messy for a moment. You do not have to make it smaller before it is allowed to be held. I am here with the feeling first, before advice, before cleanup, before anyone asks you to be easier to understand.`,
+    aristotle: `${opening} The first useful move is to separate the feeling from the question. Something in this matters to you, and something in it feels uncertain. Stay with the central issue, then take the next small step that reduces confusion rather than trying to solve the whole knot at once.`,
+    ming: `${opening} Let the mind set down what it has been carrying. Not everything asks to be solved tonight. A journey of a thousand miles begins with a single step, and sometimes the first step is simply seeing the ground beneath you again.`,
+    angel: `${opening} I want you to notice that you are still trying to name the truth instead of abandoning yourself inside it. That matters. Whatever this day has asked of you, you are not weak for needing tenderness around it.`,
+    'auntie-zhang': `${opening} Be honest with yourself, but do not be cruel. The next move does not need drama. Choose one concrete action you can stand behind, do it cleanly, and let that prove to you that you are not as stuck as the feeling says.`,
   }
 
-  return { supabase, sessionId: data?.id as string, created: true }
-}
-
-async function persistResponse({
-  content,
-  createdSession,
-  message,
-  personality,
-  sessionId,
-  supabase,
-  regenerate,
-}: {
-  content: string
-  createdSession: boolean
-  message: string
-  personality: PersonalityKey
-  sessionId: string | null
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
-  regenerate: boolean
-}) {
-  if (!supabase || !sessionId || !content.trim()) return
-
-  try {
-    if (regenerate) {
-      await supabase.from('responses').delete().eq('session_id', sessionId).eq('personality', personality)
-    }
-
-    const { error } = await supabase.from('responses').insert({
-      session_id: sessionId,
-      personality,
-      content,
-    })
-
-    if (error) {
-      console.error('Response insert failed', error)
-    }
-
-    if (createdSession) {
-      const title = await generateTitle(message)
-      const { error: titleError } = await supabase.from('sessions').update({ title }).eq('id', sessionId)
-      if (titleError) console.error('Title update failed', titleError)
-    }
-  } catch (error) {
-    console.error('Persistence failed', error)
-  }
+  return copy[personality] ?? `${personalities[personality].name} is listening. Give the thought a little more room.`
 }
 
 export async function POST(request: Request) {
@@ -138,8 +51,6 @@ export async function POST(request: Request) {
 
   const message = typeof body.message === 'string' ? body.message.trim() : ''
   const personality = isPersonalityKey(body.personality) ? body.personality : null
-  const incomingSessionId = typeof body.sessionId === 'string' && body.sessionId ? body.sessionId : null
-  const regenerate = Boolean(body.regenerate)
 
   if (!message) {
     return NextResponse.json({ error: 'Write something first. Even one sentence.' }, { status: 400 })
@@ -149,11 +60,14 @@ export async function POST(request: Request) {
     return quietError(400)
   }
 
-  if (!groq) {
-    return quietError(500)
-  }
+  const headers = new Headers({
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+  })
 
-  const { supabase, sessionId, created } = await prepareSession(message, incomingSessionId)
+  if (!groq) {
+    return new Response(streamText(mockResponse(personality, message)), { headers })
+  }
 
   try {
     const completion = await groq.chat.completions.create({
@@ -176,40 +90,21 @@ export async function POST(request: Request) {
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       async start(controller) {
-        let content = ''
-
         try {
           for await (const chunk of completion) {
             const delta = chunk.choices[0]?.delta?.content ?? ''
             if (!delta) continue
 
-            content += delta
             controller.enqueue(encoder.encode(delta))
           }
 
           controller.close()
-          await persistResponse({
-            content,
-            createdSession: created,
-            message,
-            personality,
-            regenerate,
-            sessionId,
-            supabase,
-          })
         } catch (error) {
           console.error('Groq stream failed', error)
           controller.error(error)
         }
       },
     })
-
-    const headers = new Headers({
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'no-cache, no-transform',
-    })
-
-    if (sessionId) headers.set('x-session-id', sessionId)
 
     return new Response(stream, { headers })
   } catch (error) {

@@ -2,9 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
 import { PenLine } from 'lucide-react'
-import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { Disclaimer } from '@/components/disclaimer'
 import { PersonalityTheme } from '@/components/personality-theme'
@@ -12,28 +10,10 @@ import { PersonalityTheme } from '@/components/personality-theme'
 const navItems = [
   { href: '/', label: 'Home' },
   { href: '/vent', label: 'Vent' },
-  { href: '/history', label: 'History' },
-  { href: '/profile', label: 'Profile' },
 ]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const [email, setEmail] = useState<string | null>(null)
-
-  useEffect(() => {
-    const supabase = createSupabaseBrowserClient()
-    if (!supabase) return
-
-    supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null))
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setEmail(session?.user.email ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
 
   return (
     <>
@@ -72,7 +52,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Disclaimer />
         </div>
       </div>
-      <span className="sr-only">{email ? `Signed in as ${email}` : 'Signed out'}</span>
     </>
   )
 }

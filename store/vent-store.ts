@@ -6,26 +6,26 @@ import { defaultPersonality, type PersonalityKey } from '@/lib/personalities'
 type ResponseMap = Partial<Record<PersonalityKey, string>>
 
 interface VentState {
+  currentVentText: string
   activePersonality: PersonalityKey
   defaultPersonality: PersonalityKey
-  sessionId: string | null
   responses: ResponseMap
+  setCurrentVentText: (text: string) => void
   setActivePersonality: (personality: PersonalityKey) => void
   setDefaultPersonality: (personality: PersonalityKey) => void
-  setSessionId: (sessionId: string | null) => void
   setResponse: (personality: PersonalityKey, content: string) => void
   setResponses: (responses: ResponseMap) => void
   resetSession: () => void
 }
 
 export const useVentStore = create<VentState>((set) => ({
+  currentVentText: '',
   activePersonality: defaultPersonality,
   defaultPersonality,
-  sessionId: null,
   responses: {},
+  setCurrentVentText: (currentVentText) => set({ currentVentText }),
   setActivePersonality: (activePersonality) => set({ activePersonality }),
   setDefaultPersonality: (defaultPersonality) => set({ defaultPersonality, activePersonality: defaultPersonality }),
-  setSessionId: (sessionId) => set({ sessionId }),
   setResponse: (personality, content) =>
     set((state) => ({
       responses: {
@@ -34,6 +34,5 @@ export const useVentStore = create<VentState>((set) => ({
       },
     })),
   setResponses: (responses) => set({ responses }),
-  resetSession: () => set({ sessionId: null, responses: {} }),
+  resetSession: () => set({ currentVentText: '', responses: {} }),
 }))
-

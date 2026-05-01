@@ -2,22 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Loader2, RotateCcw } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { personalities, personalityList, type PersonalityKey } from '@/lib/personalities'
 import { cn } from '@/lib/utils'
 import { useVentStore } from '@/store/vent-store'
 
-type ResponseMap = Partial<Record<PersonalityKey, string>>
 type StatusMap = Partial<Record<PersonalityKey, 'idle' | 'loading' | 'complete' | 'error'>>
 type ErrorMap = Partial<Record<PersonalityKey, string>>
 
-const emptyResponses: ResponseMap = {}
-
 interface ResponsePanelProps {
   originalText: string
-  initialSessionId?: string | null
-  initialResponses?: ResponseMap
   autoGenerateKey?: number
   onGeneratingChange?: (isGenerating: boolean) => void
   className?: string
@@ -25,36 +20,26 @@ interface ResponsePanelProps {
 
 function messageForStatus(status: number) {
   if (status === 400) return 'Write something first. Even one sentence.'
-  if (status === 401) return 'Sign in to save your sessions.'
   if (status === 429) return 'Take a breath. Try again in a moment.'
   return 'Something went quiet. Try again in a moment.'
 }
 
 export function ResponsePanel({
   originalText,
-  initialSessionId = null,
-  initialResponses = emptyResponses,
   autoGenerateKey = 0,
   onGeneratingChange,
   className,
 }: ResponsePanelProps) {
   const activePersonality = useVentStore((state) => state.activePersonality)
+  const responses = useVentStore((state) => state.responses)
   const setActivePersonality = useVentStore((state) => state.setActivePersonality)
-  const setStoreSessionId = useVentStore((state) => state.setSessionId)
   const setStoreResponse = useVentStore((state) => state.setResponse)
-  const [sessionId, setSessionId] = useState<string | null>(initialSessionId)
-  const [responses, setResponses] = useState<ResponseMap>(initialResponses)
   const [statuses, setStatuses] = useState<StatusMap>({})
   const [errors, setErrors] = useState<ErrorMap>({})
-  const sessionIdRef = useRef<string | null>(initialSessionId)
   const lastAutoGenerateKey = useRef(0)
 
-  useEffect(() => {
-    sessionIdRef.current = sessionId
-  }, [sessionId])
-
   const generateResponse = useCallback(
-    async (personality: PersonalityKey, regenerate = false) => {
+    async (personality: PersonalityKey) => {
       const trimmed = originalText.trim()
 
       if (!trimmed) {
@@ -68,14 +53,10 @@ export function ResponsePanel({
       if (statuses[personality] === 'loading') return
 
       setActivePersonality(personality)
+      setStoreResponse(personality, '')
       setErrors((current) => ({ ...current, [personality]: undefined }))
       setStatuses((current) => ({ ...current, [personality]: 'loading' }))
       onGeneratingChange?.(true)
-
-      if (regenerate) {
-        setResponses((current) => ({ ...current, [personality]: '' }))
-        setStoreResponse(personality, '')
-      }
 
       try {
         const response = await fetch('/api/chat', {
@@ -86,17 +67,8 @@ export function ResponsePanel({
           body: JSON.stringify({
             message: trimmed,
             personality,
-            sessionId: sessionIdRef.current,
-            regenerate,
           }),
         })
-
-        const nextSessionId = response.headers.get('x-session-id')
-        if (nextSessionId) {
-          setSessionId(nextSessionId)
-          sessionIdRef.current = nextSessionId
-          setStoreSessionId(nextSessionId)
-        }
 
         if (!response.ok) {
           setErrors((current) => ({
@@ -125,12 +97,10 @@ export function ResponsePanel({
           if (done) break
 
           content += decoder.decode(value, { stream: true })
-          setResponses((current) => ({ ...current, [personality]: content }))
           setStoreResponse(personality, content)
         }
 
         content += decoder.decode()
-        setResponses((current) => ({ ...current, [personality]: content }))
         setStoreResponse(personality, content)
         setStatuses((current) => ({ ...current, [personality]: 'complete' }))
       } catch {
@@ -143,14 +113,14 @@ export function ResponsePanel({
         onGeneratingChange?.(false)
       }
     },
-    [onGeneratingChange, originalText, setActivePersonality, setStoreResponse, setStoreSessionId, statuses],
+    [onGeneratingChange, originalText, setActivePersonality, setStoreResponse, statuses],
   )
 
   useEffect(() => {
     if (!autoGenerateKey || autoGenerateKey === lastAutoGenerateKey.current) return
 
     lastAutoGenerateKey.current = autoGenerateKey
-    void generateResponse(activePersonality, true)
+    void generateResponse(activePersonality)
   }, [activePersonality, autoGenerateKey, generateResponse])
 
   const active = personalities[activePersonality]
@@ -243,19 +213,6 @@ export function ResponsePanel({
                 </div>
 
                 {activeError ? <p className="text-sm text-[var(--accent)]">{activeError}</p> : null}
-
-                {hasResponse ? (
-                  <Button
-                    type="button"
-                    variant="quiet"
-                    size="sm"
-                    disabled={isLoading}
-                    onClick={() => generateResponse(activePersonality, true)}
-                  >
-                    <RotateCcw size={14} aria-hidden="true" />
-                    Regenerate
-                  </Button>
-                ) : null}
               </div>
             ) : (
               <div className="flex min-h-[150px] flex-col items-center justify-center gap-5 text-center">

@@ -14,6 +14,7 @@ function parsePersonalityParam(value: string | string[] | undefined): Personalit
 
 export default async function VentPage({ searchParams }: VentPageProps) {
   const params = await searchParams
+  const initialPersonality = parsePersonalityParam(params.personality)
 
-  return <VentPageClient initialPersonality={parsePersonalityParam(params.personality)} />
+  return <VentPageClient key={initialPersonality ?? 'none'} initialPersonality={initialPersonality} />
 }
