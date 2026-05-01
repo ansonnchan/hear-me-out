@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { useVentStore } from '@/store/vent-store'
 
 interface PersonalitySelectorProps {
-  value?: PersonalityKey
+  value?: PersonalityKey | null
   onValueChange?: (personality: PersonalityKey) => void
   className?: string
 }
@@ -13,7 +13,7 @@ interface PersonalitySelectorProps {
 export function PersonalitySelector({ value, onValueChange, className }: PersonalitySelectorProps) {
   const storeValue = useVentStore((state) => state.activePersonality)
   const setStoreValue = useVentStore((state) => state.setActivePersonality)
-  const active = value ?? storeValue
+  const active = value === null ? null : value ?? storeValue
 
   function choose(personality: PersonalityKey) {
     setStoreValue(personality)
@@ -64,4 +64,3 @@ export function PersonalitySelector({ value, onValueChange, className }: Persona
     </div>
   )
 }
-

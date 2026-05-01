@@ -8,7 +8,8 @@ vent.ai is a journaling-based web app for writing what is on your mind and heari
 
 ## What It Does
 
-- Large, distraction-free vent input with calm, editorial UI.
+- Polished welcome page with a quiet path into the writing flow.
+- Large, distraction-free vent input on `/vent` with calm, editorial UI.
 - Five response personalities: Cotton, Aristotle, Venerable Ming, Angel, and Auntie Zhang.
 - One vent can be viewed through multiple lenses without retyping.
 - Streaming AI responses through a single provider boundary in `lib/ai.ts`.
@@ -31,7 +32,9 @@ vent.ai is a journaling-based web app for writing what is on your mind and heari
 
 ## Architecture
 
-The user writes a vent on `/`, chooses a personality, and sends it to `/api/chat`.
+The user arrives at `/`, meets the product and the five personalities, then starts writing on `/vent`.
+
+The `/vent` route either begins with a choice between a new vent and saved history, or opens directly into writing when reached from a personality card like `/vent?personality=cotton`.
 
 `/api/chat` validates the request, loads the selected system prompt from `lib/personalities.ts`, streams a Groq response, and saves the session/response when a Supabase user is present. If the request is anonymous, the stream still works, but nothing is saved.
 
@@ -108,4 +111,3 @@ npm run build
 ## Responsible AI
 
 vent.ai is designed as a reflective journaling interface. It should never present itself as treatment, diagnosis, crisis care, or a replacement for trusted people and emergency services. The global prompt rules in `lib/personalities.ts` apply to every personality, including the firmer Auntie Zhang mode.
-
