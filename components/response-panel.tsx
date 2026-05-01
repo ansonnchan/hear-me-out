@@ -1,0 +1,276 @@
+'use client'
+
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Loader2, RotateCcw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { personalities, personalityList, type PersonalityKey } from '@/lib/personalities'
+import { cn } from '@/lib/utils'
+import { useVentStore } from '@/store/vent-store'
+
+type ResponseMap = Partial<Record<PersonalityKey, string>>
+type StatusMap = Partial<Record<PersonalityKey, 'idle' | 'loading' | 'complete' | 'error'>>
+type ErrorMap = Partial<Record<PersonalityKey, string>>
+
+const emptyResponses: ResponseMap = {}
+
+interface ResponsePanelProps {
+  originalText: string
+  initialSessionId?: string | null
+  initialResponses?: ResponseMap
+  autoGenerateKey?: number
+  onGeneratingChange?: (isGenerating: boolean) => void
+  className?: string
+}
+
+function messageForStatus(status: number) {
+  if (status === 400) return 'Write something first. Even one sentence.'
+  if (status === 401) return 'Sign in to save your sessions.'
+  if (status === 429) return 'Take a breath. Try again in a moment.'
+  return 'Something went quiet. Try again in a moment.'
+}
+
+export function ResponsePanel({
+  originalText,
+  initialSessionId = null,
+  initialResponses = emptyResponses,
+  autoGenerateKey = 0,
+  onGeneratingChange,
+  className,
+}: ResponsePanelProps) {
+  const activePersonality = useVentStore((state) => state.activePersonality)
+  const setActivePersonality = useVentStore((state) => state.setActivePersonality)
+  const setStoreSessionId = useVentStore((state) => state.setSessionId)
+  const setStoreResponse = useVentStore((state) => state.setResponse)
+  const [sessionId, setSessionId] = useState<string | null>(initialSessionId)
+  const [responses, setResponses] = useState<ResponseMap>(initialResponses)
+  const [statuses, setStatuses] = useState<StatusMap>({})
+  const [errors, setErrors] = useState<ErrorMap>({})
+  const sessionIdRef = useRef<string | null>(initialSessionId)
+  const lastAutoGenerateKey = useRef(0)
+
+  useEffect(() => {
+    sessionIdRef.current = sessionId
+  }, [sessionId])
+
+  const generateResponse = useCallback(
+    async (personality: PersonalityKey, regenerate = false) => {
+      const trimmed = originalText.trim()
+
+      if (!trimmed) {
+        setErrors((current) => ({
+          ...current,
+          [personality]: 'Write something first. Even one sentence.',
+        }))
+        return
+      }
+
+      if (statuses[personality] === 'loading') return
+
+      setActivePersonality(personality)
+      setErrors((current) => ({ ...current, [personality]: undefined }))
+      setStatuses((current) => ({ ...current, [personality]: 'loading' }))
+      onGeneratingChange?.(true)
+
+      if (regenerate) {
+        setResponses((current) => ({ ...current, [personality]: '' }))
+        setStoreResponse(personality, '')
+      }
+
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: trimmed,
+            personality,
+            sessionId: sessionIdRef.current,
+            regenerate,
+          }),
+        })
+
+        const nextSessionId = response.headers.get('x-session-id')
+        if (nextSessionId) {
+          setSessionId(nextSessionId)
+          sessionIdRef.current = nextSessionId
+          setStoreSessionId(nextSessionId)
+        }
+
+        if (!response.ok) {
+          setErrors((current) => ({
+            ...current,
+            [personality]: messageForStatus(response.status),
+          }))
+          setStatuses((current) => ({ ...current, [personality]: 'error' }))
+          return
+        }
+
+        if (!response.body) {
+          setErrors((current) => ({
+            ...current,
+            [personality]: 'Something went quiet. Try again in a moment.',
+          }))
+          setStatuses((current) => ({ ...current, [personality]: 'error' }))
+          return
+        }
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let content = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          content += decoder.decode(value, { stream: true })
+          setResponses((current) => ({ ...current, [personality]: content }))
+          setStoreResponse(personality, content)
+        }
+
+        content += decoder.decode()
+        setResponses((current) => ({ ...current, [personality]: content }))
+        setStoreResponse(personality, content)
+        setStatuses((current) => ({ ...current, [personality]: 'complete' }))
+      } catch {
+        setErrors((current) => ({
+          ...current,
+          [personality]: 'Lost the connection. Check your network and try again.',
+        }))
+        setStatuses((current) => ({ ...current, [personality]: 'error' }))
+      } finally {
+        onGeneratingChange?.(false)
+      }
+    },
+    [onGeneratingChange, originalText, setActivePersonality, setStoreResponse, setStoreSessionId, statuses],
+  )
+
+  useEffect(() => {
+    if (!autoGenerateKey || autoGenerateKey === lastAutoGenerateKey.current) return
+
+    lastAutoGenerateKey.current = autoGenerateKey
+    void generateResponse(activePersonality, true)
+  }, [activePersonality, autoGenerateKey, generateResponse])
+
+  const active = personalities[activePersonality]
+  const activeResponse = responses[activePersonality]
+  const activeStatus = statuses[activePersonality]
+  const activeError = errors[activePersonality]
+  const isLoading = activeStatus === 'loading'
+  const hasResponse = Boolean(activeResponse)
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+      className={cn('space-y-5', className)}
+    >
+      <div className="overflow-x-auto pb-2">
+        <div className="flex min-w-max gap-3">
+          {personalityList.map((personality) => {
+            const selected = activePersonality === personality.key
+            const generated = Boolean(responses[personality.key])
+            const loading = statuses[personality.key] === 'loading'
+
+            return (
+              <button
+                key={personality.key}
+                type="button"
+                onClick={() => setActivePersonality(personality.key)}
+                className={cn(
+                  'inline-flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-all duration-300 ease-soft',
+                  selected
+                    ? 'bg-[var(--color-surface-strong)] text-foreground shadow-[0_0_34px_var(--glow)]'
+                    : 'border-[var(--color-border)] bg-[rgba(255,255,255,0.025)] text-muted hover:bg-[var(--color-surface)] hover:text-foreground',
+                )}
+                style={{ borderColor: selected ? personality.accent : undefined }}
+                aria-pressed={selected}
+              >
+                <span aria-hidden="true">{personality.emoji}</span>
+                <span>{personality.name}</span>
+                {loading ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : null}
+                {generated && !loading ? (
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ backgroundColor: personality.accent }}
+                    aria-hidden="true"
+                  />
+                ) : null}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="glass-panel relative overflow-hidden rounded-[8px] p-6 transition-all duration-400 ease-in-out sm:p-8">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-70 transition-colors duration-400"
+          style={{
+            background: `linear-gradient(180deg, ${active.glow}, transparent)`,
+          }}
+        />
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activePersonality}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            className="relative min-h-[240px]"
+          >
+            <div className="mb-7 flex items-center gap-3">
+              <span className="text-2xl" aria-hidden="true">
+                {active.emoji}
+              </span>
+              <div>
+                <h2 className="font-display text-2xl font-medium">{active.name}</h2>
+                <p className="text-sm text-muted">{active.tagline}</p>
+              </div>
+            </div>
+
+            {hasResponse || isLoading ? (
+              <div className="space-y-7">
+                <div className="whitespace-pre-wrap text-lg leading-8 text-foreground/88">
+                  {activeResponse}
+                  {isLoading ? (
+                    <span className="ml-1 inline-flex translate-y-1 text-[var(--accent)]">
+                      <Loader2 size={16} className="animate-spin" aria-label="Listening" />
+                    </span>
+                  ) : null}
+                </div>
+
+                {activeError ? <p className="text-sm text-[var(--accent)]">{activeError}</p> : null}
+
+                {hasResponse ? (
+                  <Button
+                    type="button"
+                    variant="quiet"
+                    size="sm"
+                    disabled={isLoading}
+                    onClick={() => generateResponse(activePersonality, true)}
+                  >
+                    <RotateCcw size={14} aria-hidden="true" />
+                    Regenerate
+                  </Button>
+                ) : null}
+              </div>
+            ) : (
+              <div className="flex min-h-[150px] flex-col items-center justify-center gap-5 text-center">
+                <p className="max-w-md font-display text-2xl leading-9 text-foreground/78">
+                  Same thought, different lens.
+                </p>
+                {activeError ? <p className="text-sm text-[var(--accent)]">{activeError}</p> : null}
+                <Button type="button" variant="primary" onClick={() => generateResponse(activePersonality)}>
+                  Hear from {active.name}
+                </Button>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </motion.section>
+  )
+}

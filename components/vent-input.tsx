@@ -1,0 +1,68 @@
+'use client'
+
+import { FormEvent, useEffect, useRef } from 'react'
+import { Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
+interface VentInputProps {
+  value: string
+  onChange: (value: string) => void
+  onSubmit: () => void
+  isLoading?: boolean
+  error?: string | null
+}
+
+export function VentInput({ value, onChange, onSubmit, isLoading = false, error }: VentInputProps) {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    textarea.style.height = 'auto'
+    textarea.style.height = `${Math.max(textarea.scrollHeight, 240)}px`
+  }, [value])
+
+  function submit(event?: FormEvent) {
+    event?.preventDefault()
+    onSubmit()
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      <div
+        className={cn(
+          'glass-panel relative overflow-hidden rounded-[8px] transition-all duration-300',
+          'focus-within:border-[var(--accent)] focus-within:shadow-[0_0_58px_var(--glow)]',
+        )}
+      >
+        <textarea
+          ref={textareaRef}
+          value={value}
+          disabled={isLoading}
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={(event) => {
+            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+              event.preventDefault()
+              onSubmit()
+            }
+          }}
+          placeholder="What's on your mind? Write it all down. No one's judging."
+          className="min-h-[240px] w-full resize-none bg-transparent px-6 py-6 text-lg leading-8 text-foreground outline-none placeholder:text-foreground/30 disabled:opacity-70 sm:px-8 sm:py-8 sm:text-xl"
+          rows={6}
+        />
+        <div className="pointer-events-none absolute bottom-4 right-5 text-xs text-muted">
+          {value.length.toLocaleString()}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="min-h-5 text-sm text-[var(--accent)]">{error}</p>
+        <Button type="submit" variant="primary" size="lg" disabled={isLoading}>
+          {isLoading ? <Loader2 size={17} className="animate-spin" aria-hidden="true" /> : null}
+          Let it out
+        </Button>
+      </div>
+    </form>
+  )
+}
