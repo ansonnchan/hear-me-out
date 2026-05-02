@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { motion } from 'framer-motion'
 import { personalityAtmospheres } from '@/lib/personality-assets'
 import { personalities, personalityList, type PersonalityKey } from '@/lib/personalities'
 import { cn } from '@/lib/utils'
@@ -30,10 +31,14 @@ export function PersonalitySelector({ value, onValueChange, className }: Persona
           const activePersonality = personalities[personality.key]
 
           return (
-            <button
+            <motion.button
               key={personality.key}
               type="button"
               onClick={() => choose(personality.key)}
+              animate={{ y: selected ? -3 : 0, scale: selected ? 1.035 : 1 }}
+              whileHover={{ y: -3, scale: selected ? 1.045 : 1.025 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 24 }}
               className={cn(
                 'group inline-flex h-14 items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-4 text-sm font-medium transition-all duration-300 ease-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                 selected
@@ -50,16 +55,15 @@ export function PersonalitySelector({ value, onValueChange, className }: Persona
                   src={personalityAtmospheres[personality.key]}
                   alt=""
                   fill
-                  className={cn('object-cover object-top transition-opacity duration-300', selected ? 'opacity-95' : 'opacity-60')}
+                  className={cn('scale-110 object-cover object-top transition-opacity duration-300', selected ? 'opacity-100' : 'opacity-80')}
                   sizes="44px"
                 />
               </span>
               <span className="whitespace-nowrap">{personality.name}</span>
-            </button>
+            </motion.button>
           )
         })}
       </div>
     </div>
   )
 }
-

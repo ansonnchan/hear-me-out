@@ -50,7 +50,7 @@ export function ActiveCharacter({ personality, className, variant = 'peek' }: Ac
         <Image
           src={personalityAtmospheres[personality]}
           alt=""
-          className="h-full w-auto max-w-full object-contain opacity-[0.16]"
+          className="h-full w-auto max-w-full object-contain opacity-[0.32]"
           sizes="360px"
           priority={false}
         />

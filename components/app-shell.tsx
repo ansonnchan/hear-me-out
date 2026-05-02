@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { PenLine } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Disclaimer } from '@/components/disclaimer'
 import { PersonalityTheme } from '@/components/personality-theme'
@@ -46,7 +47,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         </header>
 
-        <main className="mx-auto w-full max-w-6xl px-5 pb-10 sm:px-8">{children}</main>
+        <AnimatePresence mode="wait">
+          <motion.main
+            key={pathname}
+            initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, y: -10, filter: 'blur(6px)' }}
+            transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
+            className="mx-auto w-full max-w-6xl px-5 pb-10 sm:px-8"
+          >
+            {children}
+          </motion.main>
+        </AnimatePresence>
 
         <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
           <Disclaimer />

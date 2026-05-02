@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ActiveCharacter } from '@/components/active-character'
 import { PersonalitySelector } from '@/components/personality-selector'
 import { ResponsePanel } from '@/components/response-panel'
@@ -85,14 +86,14 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
         <ActiveCharacter
           personality={activePersonality}
           variant="peek"
-          className="pointer-events-none fixed bottom-6 right-3 z-0 hidden h-[46vh] w-24 xl:block 2xl:w-36"
+          className="pointer-events-none fixed bottom-2 right-0 z-0 hidden h-[62vh] w-40 xl:block 2xl:w-56"
         />
       ) : null}
 
       <div className="relative z-10 mb-4 space-y-2 text-center">
         <p className="text-sm text-[var(--accent)]">Explore a different perspective.</p>
         <h1 className="text-balance font-display text-3xl font-medium leading-tight sm:text-4xl">
-          Start with what's on your mind, and see what they say.
+          Start with what&apos;s on your mind, and see what they say.
         </h1>
       </div>
 
@@ -103,63 +104,97 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
         />
       </div>
 
-      {stage === 'selecting' ? (
-        <div className="glass-panel relative z-10 mx-auto w-full max-w-3xl rounded-[8px] p-8 text-center">
-          <p className="mx-auto max-w-md font-display text-3xl leading-10 text-foreground/82">
-            Whose voice do you need to hear?
-          </p>
-        </div>
-      ) : (
-        <div className="relative z-10 grid min-h-0 flex-1 gap-5 lg:grid-cols-2 lg:items-stretch">
-          <section className="flex min-h-0 flex-col">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-sm text-muted">{submittedText ? 'Write another thought when you are ready.' : 'Write what is here.'}</p>
-              {submittedText ? <p className="hidden text-xs text-muted sm:block">The current reflection stays on the right.</p> : null}
-            </div>
-            <div className="min-h-0 flex-1">
-              <VentInput
-                value={currentVentText}
-                onChange={setCurrentVentText}
-                onSubmit={submit}
-                isLoading={isGenerating}
-                error={error}
-                compact
-                fill
-              />
-            </div>
-          </section>
-
-          <section className="relative flex min-h-[360px] flex-col lg:min-h-0">
-            <div className="mb-3 flex min-h-5 items-center justify-between gap-3">
-              <p className="text-sm text-muted">{submittedText ? 'Reflection' : 'Waiting for your thought.'}</p>
-              {submittedText ? <p className="hidden text-xs text-muted sm:block">Switch lenses above.</p> : null}
-            </div>
-            {selectedPersonality ? (
-              <ActiveCharacter
-                personality={activePersonality}
-                variant="portrait"
-                className="relative z-10 mb-3 flex justify-center lg:hidden"
-              />
-            ) : null}
-            <div className="relative z-10 min-h-0 flex-1">
-              {submittedText ? (
-                <ResponsePanel
-                  key={generationKey}
-                  originalText={submittedText}
-                  autoGenerateKey={generationKey}
-                  onGeneratingChange={setIsGenerating}
+      <AnimatePresence mode="wait">
+        {stage === 'selecting' ? (
+          <motion.div
+            key="selecting"
+            initial={{ opacity: 0, y: 12, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.985 }}
+            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+            className="glass-panel relative z-10 mx-auto w-full max-w-3xl rounded-[8px] p-8 text-center"
+          >
+            <p className="mx-auto max-w-md font-display text-3xl leading-10 text-foreground/82">
+              Whose voice do you need to hear?
+            </p>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="writing"
+            initial={{ opacity: 0, y: 14, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.985 }}
+            transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
+            className="relative z-10 grid min-h-0 flex-1 gap-5 lg:grid-cols-2 lg:items-stretch"
+          >
+            <section className="flex min-h-0 flex-col">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-sm text-muted">{submittedText ? 'Write another thought when you are ready.' : 'Write what is here.'}</p>
+                {submittedText ? <p className="hidden text-xs text-muted sm:block">The current reflection stays on the right.</p> : null}
+              </div>
+              <div className="min-h-0 flex-1">
+                <VentInput
+                  value={currentVentText}
+                  onChange={setCurrentVentText}
+                  onSubmit={submit}
+                  isLoading={isGenerating}
+                  error={error}
+                  compact
+                  fill
                 />
-              ) : (
-                <div className="glass-panel flex h-full min-h-[320px] items-center justify-center rounded-[8px] p-8 text-center">
-                  <p className="max-w-sm font-display text-2xl leading-9 text-foreground/72">
-                    Your reflection will appear here.
-                  </p>
-                </div>
-              )}
-            </div>
-          </section>
-        </div>
-      )}
+              </div>
+            </section>
+
+            <section className="relative flex min-h-[360px] flex-col lg:min-h-0">
+              <div className="mb-3 flex min-h-5 items-center justify-between gap-3">
+                <p className="text-sm text-muted">{submittedText ? 'Reflection' : 'Waiting for your thought.'}</p>
+                {submittedText ? <p className="hidden text-xs text-muted sm:block">Switch lenses above.</p> : null}
+              </div>
+              {selectedPersonality ? (
+                <ActiveCharacter
+                  personality={activePersonality}
+                  variant="portrait"
+                  className="relative z-10 mb-3 flex justify-center lg:hidden"
+                />
+              ) : null}
+              <div className="relative z-10 min-h-0 flex-1">
+                <AnimatePresence mode="wait">
+                  {submittedText ? (
+                    <motion.div
+                      key="response"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+                      className="h-full"
+                    >
+                      <ResponsePanel
+                        key={generationKey}
+                        originalText={submittedText}
+                        autoGenerateKey={generationKey}
+                        onGeneratingChange={setIsGenerating}
+                      />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="empty"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
+                      className="glass-panel flex h-full min-h-[320px] items-center justify-center rounded-[8px] p-8 text-center"
+                    >
+                      <p className="max-w-sm font-display text-2xl leading-9 text-foreground/72">
+                        Your reflection will appear here.
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </section>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
