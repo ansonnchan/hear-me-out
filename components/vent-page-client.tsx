@@ -7,6 +7,7 @@ import { ActiveCharacter } from '@/components/active-character'
 import { PersonalitySelector } from '@/components/personality-selector'
 import { ResponsePanel } from '@/components/response-panel'
 import { VentInput } from '@/components/vent-input'
+import { recordClientMetric } from '@/lib/client-metrics'
 import { personalityAtmospheres } from '@/lib/personality-assets'
 import { type PersonalityKey } from '@/lib/personalities'
 import { useVentStore } from '@/store/vent-store'
@@ -92,6 +93,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
 
     setError(null)
     setLastSubmittedAt(now)
+    recordClientMetric('vent_submitted', { personality: activePersonality, characters: trimmed.length })
     setResponses({})
     setActivePersonality(activePersonality)
     setCurrentVent(trimmed)

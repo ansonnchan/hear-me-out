@@ -24,6 +24,8 @@ Users can write one vent and then choose which personality should respond. Switc
 - Personality switching for generating different perspectives on the same thought.
 - Clear response control that resets the current reflection state.
 - Ephemeral in-memory state with Zustand.
+- Upstash Redis rate limiting for AI API calls.
+- Lightweight client-side metrics for vents submitted, API calls, personality switches, time to first token, total response time, errors, and rate-limit hits.
 - Mock streamed responses when `GROQ_API_KEY` is not configured.
 - Responsive UI built for desktop and mobile.
 - Subtle motion using Framer Motion with reduced-motion support.
@@ -37,6 +39,7 @@ Users can write one vent and then choose which personality should respond. Switc
 - **Animation:** Framer Motion
 - **State:** Zustand
 - **AI:** Groq SDK
+- **Rate Limiting:** Upstash Redis and Upstash Ratelimit
 - **API:** Next.js route handler at `/api/chat`
 
 ## How It Works
@@ -44,6 +47,8 @@ Users can write one vent and then choose which personality should respond. Switc
 The user starts on the landing page, chooses a personality, and writes a thought on `/vent`.
 
 When a vent is submitted, the frontend sends `{ message, personality }` to `/api/chat`. The API route validates the request, loads the selected personality prompt from `lib/personalities.ts`, and streams a response back to the UI. If no Groq API key is present, the route returns a local mock response so the interface can still be developed and tested.
+
+The chat route is protected by an optional Upstash Redis sliding-window rate limit. When Upstash credentials are not configured, the app still runs locally without server-side rate limiting.
 
 All session state is kept in memory. Refreshing or closing the tab clears the current vent and responses.
 
@@ -78,9 +83,13 @@ http://localhost:3000
 ```bash
 GROQ_API_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
 ```
 
 `GROQ_API_KEY` is optional for local UI work. Without it, the app uses mock, hard-coded responses.
+
+The Upstash variables are optional locally. Add them to enable Redis-backed rate limiting for `/api/chat`.
 
 ## Scripts
 

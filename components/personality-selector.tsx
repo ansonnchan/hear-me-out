@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { KeyboardEvent } from 'react'
 import { motion } from 'framer-motion'
 import { personalityAtmospheres } from '@/lib/personality-assets'
+import { recordClientMetric } from '@/lib/client-metrics'
 import { personalities, personalityList, type PersonalityKey } from '@/lib/personalities'
 import { cn } from '@/lib/utils'
 import { useVentStore } from '@/store/vent-store'
@@ -20,6 +21,10 @@ export function PersonalitySelector({ value, onValueChange, className }: Persona
   const active = value === null ? null : value ?? storeValue
 
   function choose(personality: PersonalityKey) {
+    if (personality !== active) {
+      recordClientMetric('personality_switch', { personality })
+    }
+
     setStoreValue(personality)
     onValueChange?.(personality)
   }

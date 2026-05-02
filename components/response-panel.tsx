@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import { recordClientMetric } from '@/lib/client-metrics'
 import { personalities, type PersonalityKey } from '@/lib/personalities'
 import { cn } from '@/lib/utils'
 import { useVentStore } from '@/store/vent-store'
@@ -90,6 +91,7 @@ export function ResponsePanel({
 
       const now = Date.now()
       if (now - lastGeneratedAt.current < 4000) {
+        recordClientMetric('client_cooldown_hit', { personality })
         setErrors((current) => ({
           ...current,
           [personality]: cooldownMessages[personality],
@@ -106,6 +108,11 @@ export function ResponsePanel({
       onGeneratingChange?.(true)
 
       try {
+        const requestStartedAt = performance.now()
+        let firstTokenAt: number | null = null
+
+        recordClientMetric('api_call', { personality, characters: trimmed.length })
+
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: {
@@ -118,6 +125,11 @@ export function ResponsePanel({
         })
 
         if (!response.ok) {
+          recordClientMetric(response.status === 429 ? 'rate_limit_hit' : 'api_error', {
+            personality,
+            status: response.status,
+            totalMs: Math.round(performance.now() - requestStartedAt),
+          })
           setErrors((current) => ({
             ...current,
             [personality]: messageForStatus(response.status),
@@ -127,6 +139,10 @@ export function ResponsePanel({
         }
 
         if (!response.body) {
+          recordClientMetric('api_error', {
+            personality,
+            totalMs: Math.round(performance.now() - requestStartedAt),
+          })
           setErrors((current) => ({
             ...current,
             [personality]: 'Something went quiet. Try again in a moment.',
@@ -143,14 +159,22 @@ export function ResponsePanel({
           const { done, value } = await reader.read()
           if (done) break
 
+          firstTokenAt ??= performance.now()
           content += decoder.decode(value, { stream: true })
           setStoreResponse(personality, content)
         }
 
         content += decoder.decode()
         setStoreResponse(personality, content)
+        recordClientMetric('response_generated', {
+          personality,
+          ttftMs: firstTokenAt ? Math.round(firstTokenAt - requestStartedAt) : undefined,
+          totalMs: Math.round(performance.now() - requestStartedAt),
+          characters: content.length,
+        })
         setStatuses((current) => ({ ...current, [personality]: 'complete' }))
       } catch {
+        recordClientMetric('api_error', { personality })
         setErrors((current) => ({
           ...current,
           [personality]: 'Lost the connection. Check your network and try again.',
@@ -231,7 +255,10 @@ export function ResponsePanel({
                   variant="primary"
                   size="lg"
                   className="px-8 text-lg shadow-[0_0_42px_color-mix(in_srgb,var(--accent)_24%,transparent)]"
-                  onClick={() => generateResponse(activePersonality)}
+                  onClick={() => {
+                    recordClientMetric('hear_from_clicked', { personality: activePersonality })
+                    generateResponse(activePersonality)
+                  }}
                 >
                   Hear from {active.name}
                 </Button>

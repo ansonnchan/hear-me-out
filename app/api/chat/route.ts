@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { AI_MODEL, groq } from '@/lib/ai'
 import { getPersonalityPrompt, isPersonalityKey, personalities, type PersonalityKey } from '@/lib/personalities'
+import { applyRateLimitHeaders, checkChatRateLimit } from '@/lib/rate-limit'
 
 interface ChatRequestBody {
   message?: unknown
@@ -9,11 +10,15 @@ interface ChatRequestBody {
 
 const RESPONSE_WORD_LIMIT = 160
 
-function quietError(status: number) {
-  return NextResponse.json({ error: 'Something went quiet. Try again in a moment.' }, { status })
+function requestId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
 }
 
-function streamText(text: string) {
+function quietError(status: number, headers?: Headers) {
+  return NextResponse.json({ error: 'Something went quiet. Try again in a moment.' }, { status, headers })
+}
+
+function streamText(text: string, onComplete?: () => void) {
   const encoder = new TextEncoder()
   const chunks = text.split(/(\s+)/)
 
@@ -24,6 +29,7 @@ function streamText(text: string) {
       }
 
       controller.close()
+      onComplete?.()
     },
   })
 }
@@ -44,32 +50,86 @@ function mockResponse(personality: PersonalityKey, message: string) {
 }
 
 export async function POST(request: Request) {
+  const id = requestId()
+  const requestStartedAt = performance.now()
+  let rateLimit
+
+  try {
+    rateLimit = await checkChatRateLimit(request)
+  } catch (error) {
+    console.error('[vent.ai] rate_limit.check_failed', { requestId: id, error })
+    rateLimit = null
+  }
+
+  if (rateLimit && !rateLimit.success) {
+    const headers = new Headers()
+    headers.set('X-Request-Id', id)
+    applyRateLimitHeaders(headers, rateLimit)
+
+    console.info('[vent.ai] api.chat.rate_limited', {
+      requestId: id,
+      remaining: rateLimit.remaining,
+      reset: rateLimit.reset,
+    })
+
+    return NextResponse.json({ error: 'Take a breath. Try again in a moment.' }, { status: 429, headers })
+  }
+
   let body: ChatRequestBody
 
   try {
     body = (await request.json()) as ChatRequestBody
   } catch {
-    return quietError(400)
+    const headers = new Headers()
+    headers.set('X-Request-Id', id)
+    if (rateLimit) applyRateLimitHeaders(headers, rateLimit)
+    return quietError(400, headers)
   }
 
   const message = typeof body.message === 'string' ? body.message.trim() : ''
   const personality = isPersonalityKey(body.personality) ? body.personality : null
 
   if (!message) {
-    return NextResponse.json({ error: 'Write something first. Even one sentence.' }, { status: 400 })
+    const headers = new Headers()
+    headers.set('X-Request-Id', id)
+    if (rateLimit) applyRateLimitHeaders(headers, rateLimit)
+    return NextResponse.json({ error: 'Write something first. Even one sentence.' }, { status: 400, headers })
   }
 
   if (!personality) {
-    return quietError(400)
+    const headers = new Headers()
+    headers.set('X-Request-Id', id)
+    if (rateLimit) applyRateLimitHeaders(headers, rateLimit)
+    return quietError(400, headers)
   }
 
   const headers = new Headers({
     'Content-Type': 'text/plain; charset=utf-8',
     'Cache-Control': 'no-cache, no-transform',
   })
+  headers.set('X-Request-Id', id)
+  if (rateLimit) applyRateLimitHeaders(headers, rateLimit)
+
+  console.info('[vent.ai] api.chat.started', {
+    requestId: id,
+    personality,
+    messageChars: message.length,
+    rateLimitConfigured: rateLimit?.configured ?? false,
+    rateLimitRemaining: rateLimit?.remaining,
+  })
 
   if (!groq) {
-    return new Response(streamText(mockResponse(personality, message)), { headers })
+    return new Response(
+      streamText(mockResponse(personality, message), () => {
+        console.info('[vent.ai] api.chat.completed', {
+          requestId: id,
+          personality,
+          provider: 'mock',
+          totalMs: Math.round(performance.now() - requestStartedAt),
+        })
+      }),
+      { headers },
+    )
   }
 
   try {
@@ -105,17 +165,27 @@ Do not sound scripted. Stay true to the active personality, but make each respon
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       async start(controller) {
+        let firstTokenAt: number | null = null
+
         try {
           for await (const chunk of completion) {
             const delta = chunk.choices[0]?.delta?.content ?? ''
             if (!delta) continue
 
+            firstTokenAt ??= performance.now()
             controller.enqueue(encoder.encode(delta))
           }
 
           controller.close()
+          console.info('[vent.ai] api.chat.completed', {
+            requestId: id,
+            personality,
+            provider: 'groq',
+            serverTtftMs: firstTokenAt ? Math.round(firstTokenAt - requestStartedAt) : null,
+            totalMs: Math.round(performance.now() - requestStartedAt),
+          })
         } catch (error) {
-          console.error('Groq stream failed', error)
+          console.error('[vent.ai] api.chat.stream_failed', { requestId: id, personality, error })
           controller.error(error)
         }
       },
@@ -123,7 +193,7 @@ Do not sound scripted. Stay true to the active personality, but make each respon
 
     return new Response(stream, { headers })
   } catch (error) {
-    console.error('Groq API failed', error)
-    return quietError(503)
+    console.error('[vent.ai] api.chat.groq_failed', { requestId: id, personality, error })
+    return quietError(503, headers)
   }
 }
