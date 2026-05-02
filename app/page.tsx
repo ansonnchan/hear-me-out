@@ -17,14 +17,14 @@ export default function HomePage() {
       </div>
 
       <section className="mx-[calc(50%-50vw)] mt-12 w-screen px-5 sm:mt-20 sm:px-8">
-        <div className="mx-auto mb-8 max-w-6xl space-y-3">
-          <h2 className="font-display text-3xl font-medium leading-tight sm:text-4xl lg:text-[2.65rem]">
-            Choose a personality, share your thoughts, and see what they say.
-          </h2>
-        </div>
+  <div className="mx-auto mb-8 max-w-6xl space-y-3">
+    <h2 className="font-display text-2xl font-medium tracking-tight leading-tight sm:text-3xl lg:text-4xl">
+      Choose a personality, share your thoughts, and see what they say.
+    </h2>
+  </div>
 
-        <PersonalityShowcase />
-      </section>
+  <PersonalityShowcase />
+</section>
     </div>
   )
 }

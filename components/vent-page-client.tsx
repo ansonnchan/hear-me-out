@@ -1,11 +1,13 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ActiveCharacter } from '@/components/active-character'
 import { PersonalitySelector } from '@/components/personality-selector'
 import { ResponsePanel } from '@/components/response-panel'
 import { VentInput } from '@/components/vent-input'
+import { personalityAtmospheres } from '@/lib/personality-assets'
 import { type PersonalityKey } from '@/lib/personalities'
 import { useVentStore } from '@/store/vent-store'
 
@@ -81,12 +83,12 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
   }
 
   return (
-    <div className="relative mx-auto flex min-h-[calc(100vh-8.5rem)] max-w-5xl flex-col pb-4 pt-4 sm:pt-6">
+    <div className="relative mx-auto flex min-h-[calc(100vh-8.5rem)] max-w-5xl flex-col pb-4 pt-10 sm:pt-12">
       {selectedPersonality ? (
         <ActiveCharacter
           personality={activePersonality}
           variant="peek"
-          className="pointer-events-none fixed bottom-2 right-0 z-0 hidden h-[62vh] w-40 xl:block 2xl:w-56"
+          className="pointer-events-none fixed -bottom-10 -right-10 z-0 hidden h-[78vh] w-[24rem] lg:block 2xl:w-[34rem]"
         />
       ) : null}
 
@@ -97,7 +99,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
         </h1>
       </div>
 
-      <div className="relative z-10 mb-4">
+      <div className="relative z-10 mb-7">
         <PersonalitySelector
           value={stage === 'selecting' ? selectedPersonality : activePersonality}
           onValueChange={choosePersonality}
@@ -182,11 +184,15 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-                      className="glass-panel flex h-full min-h-[320px] items-center justify-center rounded-[8px] p-8 text-center"
+                      className="glass-panel relative flex h-full min-h-[320px] items-end justify-end overflow-hidden rounded-[8px] border-[color-mix(in_srgb,var(--accent)_30%,transparent)] p-0 shadow-[0_0_46px_color-mix(in_srgb,var(--accent)_24%,transparent)]"
                     >
-                      <p className="max-w-sm font-display text-2xl leading-9 text-foreground/72">
-                        Your reflection will appear here.
-                      </p>
+                      <Image
+                        src={personalityAtmospheres[activePersonality]}
+                        alt=""
+                        className="h-full w-full object-contain object-right-bottom opacity-[0.65]"
+                        sizes="(min-width: 1024px) 480px, 100vw"
+                        priority={false}
+                      />
                     </motion.div>
                   )}
                 </AnimatePresence>

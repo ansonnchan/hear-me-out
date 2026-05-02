@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { KeyboardEvent, useState } from 'react'
+import { MouseEvent, useState } from 'react'
 import { motion } from 'framer-motion'
 import { personalityImages } from '@/lib/personality-assets'
 import { personalities, type PersonalityKey } from '@/lib/personalities'
@@ -33,20 +33,15 @@ interface PersonalityIntroCardProps {
   isSelected?: boolean
   onSelect?: () => void
 }
-
 export function PersonalityIntroCard({ personalityKey, isSelected = false, onSelect }: PersonalityIntroCardProps) {
   const [isFlipped, setIsFlipped] = useState(false)
   const personality = personalities[personalityKey]
 
-  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      setIsFlipped((flipped) => !flipped)
-    }
-  }
-
-  function handleClick() {
+  function handleClick(event: MouseEvent<HTMLButtonElement>) {
     onSelect?.()
+
+    if (event.detail === 0) return
+
     setIsFlipped((flipped) => !flipped)
   }
 
@@ -56,23 +51,31 @@ export function PersonalityIntroCard({ personalityKey, isSelected = false, onSel
     <motion.button
       type="button"
       onClick={handleClick}
-      onKeyDown={handleKeyDown}
       animate={{
-        scale: isSelected ? 1.045 : 1,
-        y: isSelected ? -10 : 0,
-        boxShadow: isSelected ? `0 20px 54px -16px ${glow}, 0 0 0 1px ${glow}` : '0 0 0 0 rgba(0,0,0,0)',
+        scale: isSelected ? 1.05 : 1,
+        y: isSelected ? -15 : 0,
+
+        boxShadow: isSelected
+          ? `0 25px 50px -12px ${glow}`
+          : '0 0 0 0 rgba(0,0,0,0)',
       }}
-      whileHover={{ scale: isSelected ? 1.065 : 1.035, y: isSelected ? -12 : -7 }}
-      whileFocus={{ scale: isSelected ? 1.065 : 1.035, y: isSelected ? -12 : -7 }}
+      whileHover={{ y: -10, scale: isSelected ? 1.05 : 1.02 }}
       whileTap={{ scale: 0.98 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+
+      transition={{
+        type: 'spring',
+        stiffness: 300,
+        damping: 25,
+
+        boxShadow: { duration: isSelected ? 0.3 : 0 },
+      }}
       className={cn(
-        'group relative h-[420px] w-[280px] shrink-0 snap-center rounded-[8px] text-left outline-none [perspective:1200px] sm:w-[310px]',
+
+        'group relative h-[380px] w-[255px] shrink-0 snap-center rounded-[8px] text-left outline-none [perspective:1200px]',
         'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
       )}
       aria-pressed={isFlipped}
       data-selected={isSelected}
-      aria-label={`${personality.name}. Flip card`}
     >
       <span
         className={cn(
@@ -80,43 +83,42 @@ export function PersonalityIntroCard({ personalityKey, isSelected = false, onSel
           isFlipped && '[transform:rotateY(180deg)]',
         )}
       >
+        {/* FRONT OF CARD */}
         <span
           className="absolute inset-0 overflow-hidden rounded-[8px] bg-[rgba(255,255,255,0.035)] [backface-visibility:hidden]"
           style={{
             boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${personality.accent} ${isSelected ? 42 : 22}%, transparent)`,
           }}
         >
-          <span
-            className="pointer-events-none absolute inset-x-6 top-0 z-10 h-px opacity-70 transition-opacity duration-300 group-hover:opacity-100"
-            style={{ backgroundColor: personality.accent }}
-          />
-          
           <Image
             src={personalityImages[personality.key]}
             alt=""
-            className="h-[316px] w-full object-cover opacity-95 transition-transform duration-700 group-hover:scale-110"
-            sizes="(max-width: 640px) 280px, 310px"
+            className="h-[270px] w-full object-cover opacity-95"
+            sizes="265px"
             placeholder="blur"
           />
           
-          <span className="block p-5">
-            <span className="block font-display text-2xl font-medium">{personality.name}</span>
-            <span className="mt-1 block text-sm text-muted">{personality.tagline}</span>
+          <span className="block p-4">
+            <span className="block font-display text-xl font-medium">{personality.name}</span>
+            <span className="mt-1 block text-xs text-muted leading-relaxed line-clamp-2">
+              {personality.tagline}
+            </span>
           </span>
         </span>
 
+        {/* BACK OF CARD */}
         <span
-          className="absolute inset-0 flex rounded-[8px] bg-[rgba(255,255,255,0.05)] p-8 [backface-visibility:hidden] [transform:rotateY(180deg)]"
+          className="absolute inset-0 flex rounded-[8px] bg-[rgba(255,255,255,0.05)] p-6 [backface-visibility:hidden] [transform:rotateY(180deg)]"
           style={{
             boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${personality.accent} ${isSelected ? 46 : 28}%, transparent)`,
           }}
         >
           <span className="my-auto block">
-            <span className="block font-display text-3xl font-medium">{personality.name}</span>
-            <span className="font-serif-copy mt-6 block text-[17px] leading-relaxed text-foreground/80">
+            <span className="block font-display text-2xl font-medium">{personality.name}</span>
+            <span className="font-serif-copy mt-4 block text-[14px] leading-6 text-foreground/82">
               {personalityDescriptions[personality.key]}
             </span>
-            <span className="mt-8 block text-xs tracking-widest uppercase text-muted/60">
+            <span className="mt-6 block text-[10px] tracking-widest uppercase text-muted/50">
               Tap to return
             </span>
           </span>

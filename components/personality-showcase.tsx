@@ -8,13 +8,14 @@ import { personalityList } from '@/lib/personalities'
 
 export function PersonalityShowcase() {
   const scrollRef = useRef<HTMLDivElement | null>(null)
-  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
 
   function scrollByCard(direction: 'left' | 'right') {
+    const currentIndex = selectedIndex ?? 0
     const nextIndex =
       direction === 'left'
-        ? Math.max(0, selectedIndex - 1)
-        : Math.min(personalityList.length - 1, selectedIndex + 1)
+        ? Math.max(0, currentIndex - 1)
+        : Math.min(personalityList.length - 1, currentIndex + 1)
 
     setSelectedIndex(nextIndex)
     scrollRef.current?.scrollBy({

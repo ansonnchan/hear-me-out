@@ -44,7 +44,8 @@ export function VentInput({
       <div
         className={cn(
           'glass-panel relative overflow-hidden rounded-[8px] transition-all duration-300',
-          'focus-within:border-[var(--accent)] focus-within:shadow-[0_0_58px_var(--glow)]',
+          'border-[color-mix(in_srgb,var(--accent)_30%,transparent)] shadow-[0_0_46px_color-mix(in_srgb,var(--accent)_24%,transparent)]',
+          'focus-within:border-[var(--accent)] focus-within:shadow-[0_0_68px_color-mix(in_srgb,var(--accent)_34%,transparent)]',
           fill && 'flex min-h-0 flex-1',
         )}
       >

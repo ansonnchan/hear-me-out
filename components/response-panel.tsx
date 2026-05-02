@@ -173,6 +173,12 @@ export function ResponsePanel({
   const isLoading = activeStatus === 'loading'
   const hasResponse = Boolean(activeResponse)
 
+  function clearResponse() {
+    setStoreResponse(activePersonality, '')
+    setErrors((current) => ({ ...current, [activePersonality]: undefined }))
+    setStatuses((current) => ({ ...current, [activePersonality]: 'idle' }))
+  }
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 16 }}
@@ -180,7 +186,7 @@ export function ResponsePanel({
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
       className={cn('flex h-full min-h-0 flex-col space-y-4', className)}
     >
-      <div className="glass-panel relative min-h-[260px] flex-1 overflow-hidden rounded-[8px] p-5 transition-all duration-400 ease-in-out sm:p-6">
+      <div className="glass-panel relative min-h-[260px] flex-1 overflow-hidden rounded-[8px] border-[color-mix(in_srgb,var(--accent)_30%,transparent)] p-5 shadow-[0_0_46px_color-mix(in_srgb,var(--accent)_24%,transparent)] transition-all duration-400 ease-in-out sm:p-6">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-70 transition-colors duration-400"
           style={{
@@ -221,6 +227,13 @@ export function ResponsePanel({
             )}
           </motion.div>
         </AnimatePresence>
+      </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="min-h-5 text-sm text-[var(--accent)]" />
+        <Button type="button" variant="secondary" size="lg" onClick={clearResponse} disabled={isLoading || !hasResponse}>
+          Clear response
+        </Button>
       </div>
     </motion.section>
   )
