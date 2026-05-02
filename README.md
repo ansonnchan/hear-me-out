@@ -1,45 +1,77 @@
 # vent.ai
 
-Same thought, different lens.
+Same thought. Different lens.
 
-vent.ai is an ephemeral journaling interface for writing what is on your mind and hearing it reflected through five distinct AI personalities. It is not therapy, diagnosis, crisis support, or professional care.
+vent.ai is an ephemeral AI reflection app for writing what is on your mind and hearing it reflected through distinct personality perspectives. It is designed to feel calm, private, and lightweight: no accounts, no saved history, and no persistent user data.
 
-## What It Does
+## AI Personalities
 
-- Polished welcome page with a quiet path into the writing flow.
-- Large, distraction-free vent input on `/vent`.
-- Five response personalities: Cotton, Aristotle, Venerable Ming, Angel, and Auntie Zhang.
-- One vent can be viewed through multiple lenses without retyping.
-- Streaming responses through `/api/chat`.
-- In-memory response cache only. Refreshing or closing the tab loses everything.
-- Mock responses when `GROQ_API_KEY` is missing, so the app still runs locally.
+vent.ai includes five personality modes, each with its own tone, visual accent, and response style:
+
+- **Cotton**: soft, gentle, and emotionally validating.
+- **Aristotle**: clear, grounded, and reasoning-focused.
+- **Venerable Ming**: calm, spacious, and perspective-oriented.
+- **Angel**: encouraging, supportive, and confidence-building.
+- **Auntie Zhang**: direct, caring, and accountability-focused.
+
+Users can write one vent and then choose which personality should respond. Switching personalities keeps the current vent available, but does not automatically replay old responses, so each personality interaction feels fresh and intentional.
+
+## Features
+
+- Distraction-free vent input on `/vent`.
+- Five themed AI personalities with dynamic accent colors and character art.
+- Streamed AI responses through a REST-style Next.js API route.
+- Personality switching for generating different perspectives on the same thought.
+- Clear response control that resets the current reflection state.
+- Ephemeral in-memory state with Zustand.
+- Mock streamed responses when `GROQ_API_KEY` is not configured.
+- Responsive UI built for desktop and mobile.
+- Subtle motion using Framer Motion with reduced-motion support.
 
 ## Tech Stack
 
-- Next.js App Router for the product shell and API route.
-- TypeScript for typed personality keys, state, and route contracts.
-- Tailwind CSS for the custom dark visual system.
-- Framer Motion for subtle entrances and personality transitions.
-- Zustand for ephemeral client state.
-- Groq SDK for streaming Llama responses when an API key is present.
+- **Framework:** Next.js App Router
+- **Language:** TypeScript
+- **Frontend:** React
+- **Styling:** Tailwind CSS
+- **Animation:** Framer Motion
+- **State:** Zustand
+- **AI:** Groq SDK
+- **API:** Next.js route handler at `/api/chat`
 
-## Architecture
+## How It Works
 
-The user arrives at `/`, meets the product and the five personalities, then starts writing on `/vent`.
+The user starts on the landing page, chooses a personality, and writes a thought on `/vent`.
 
-The `/vent` route begins with `PersonalitySelector`. Once a personality is selected, `VentInput` appears. Submitting the text shows `ResponsePanel`, which streams the selected personality first and keeps generated responses in Zustand memory for instant tab switching.
+When a vent is submitted, the frontend sends `{ message, personality }` to `/api/chat`. The API route validates the request, loads the selected personality prompt from `lib/personalities.ts`, and streams a response back to the UI. If no Groq API key is present, the route returns a local mock response so the interface can still be developed and tested.
 
-`/api/chat` accepts `{ message, personality }`, loads the matching prompt from `lib/personalities.ts`, and streams either Groq output or a local mock response. There are no accounts, database writes, saved sessions, profiles, titles, history, or localStorage persistence.
+All session state is kept in memory. Refreshing or closing the tab clears the current vent and responses.
 
-## Setup
+## Getting Started
+
+Install dependencies:
 
 ```bash
 npm install
+```
+
+Create a local environment file:
+
+```bash
 cp .env.example .env.local
+```
+
+Run the development server:
+
+```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open:
+
+```bash
+http://localhost:3000
+```
 
 ## Environment Variables
 
@@ -48,7 +80,7 @@ GROQ_API_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-`GROQ_API_KEY` is optional for local UI work. Without it, the API returns mock streamed responses.
+`GROQ_API_KEY` is optional for local UI work. Without it, the app uses mock, hard-coded responses.
 
 ## Scripts
 
@@ -59,7 +91,8 @@ npm run typecheck
 npm run build
 ```
 
-## Responsible AI
+## Not a Substitute for Support
 
-vent.ai is a reflective journaling interface. It should never present itself as treatment, diagnosis, crisis care, or a replacement for trusted people and emergency services. The global prompt rules in `lib/personalities.ts` apply to every personality, including the firmer Auntie Zhang mode.
+vent.ai is not therapy, diagnosis, crisis support, medical advice, or professional care. It is a reflective writing tool meant to help users slow down, name what they are feeling, and hear their thoughts from another angle.
 
+If someone is in danger, may hurt themselves, or needs urgent help, they should contact emergency services or reach out to a trusted person or qualified professional. The app is meant to support reflection, not replace human care.
