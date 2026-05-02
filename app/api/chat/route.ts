@@ -7,6 +7,8 @@ interface ChatRequestBody {
   personality?: unknown
 }
 
+const RESPONSE_WORD_LIMIT = 160
+
 function quietError(status: number) {
   return NextResponse.json({ error: 'Something went quiet. Try again in a moment.' }, { status })
 }
@@ -75,13 +77,13 @@ export async function POST(request: Request) {
       model: AI_MODEL,
       stream: true,
       temperature: 0.72,
-      max_tokens: 280,
+      max_tokens: 230,
       messages: [
         {
           role: 'system',
           content: `${getPersonalityPrompt(personality)}
 
-Keep the response to one paragraph, about 4 to 6 sentences.
+Keep the response to one paragraph, about 4 to 6 sentences and no more than ${RESPONSE_WORD_LIMIT} words.
 
 Do not use bullets, headings, numbered steps, or chat-like formatting.
 

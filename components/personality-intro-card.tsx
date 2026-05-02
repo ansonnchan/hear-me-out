@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { MouseEvent, useState } from 'react'
+import { KeyboardEvent, MouseEvent, useState } from 'react'
 import { motion } from 'framer-motion'
 import { personalityImages } from '@/lib/personality-assets'
 import { personalities, type PersonalityKey } from '@/lib/personalities'
@@ -45,12 +45,19 @@ export function PersonalityIntroCard({ personalityKey, isSelected = false, onSel
     setIsFlipped((flipped) => !flipped)
   }
 
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+    }
+  }
+
   const glow = glowColors[personalityKey]
 
   return (
     <motion.button
       type="button"
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       animate={{
         scale: isSelected ? 1.05 : 1,
         y: isSelected ? -15 : 0,
@@ -70,7 +77,6 @@ export function PersonalityIntroCard({ personalityKey, isSelected = false, onSel
         boxShadow: { duration: isSelected ? 0.3 : 0 },
       }}
       className={cn(
-
         'group relative h-[380px] w-[255px] shrink-0 snap-center rounded-[8px] text-left outline-none [perspective:1200px]',
         'focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
       )}
@@ -97,7 +103,7 @@ export function PersonalityIntroCard({ personalityKey, isSelected = false, onSel
             sizes="265px"
             placeholder="blur"
           />
-          
+
           <span className="block p-4">
             <span className="block font-display text-xl font-medium">{personality.name}</span>
             <span className="mt-1 block text-xs text-muted leading-relaxed line-clamp-2">

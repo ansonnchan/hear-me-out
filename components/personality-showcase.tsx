@@ -25,14 +25,8 @@ export function PersonalityShowcase() {
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'ArrowLeft') {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault()
-      scrollByCard('left')
-    }
-
-    if (event.key === 'ArrowRight') {
-      event.preventDefault()
-      scrollByCard('right')
     }
   }
 
@@ -40,7 +34,7 @@ export function PersonalityShowcase() {
     <div className="relative" onKeyDown={handleKeyDown}>
       <div
         ref={scrollRef}
-        className="mx-auto flex max-w-full snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-2 pb-8 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="mx-auto flex w-full snap-x snap-mandatory justify-start gap-5 overflow-x-auto scroll-smooth px-[max(0.5rem,calc((100vw-87.5rem)/2))] pb-8 pt-8 [scrollbar-width:none] xl:justify-center [&::-webkit-scrollbar]:hidden"
       >
         {personalityList.map((personality, index) => (
           <PersonalityIntroCard

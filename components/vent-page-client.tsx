@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ActiveCharacter } from '@/components/active-character'
 import { PersonalitySelector } from '@/components/personality-selector'
 import { ResponsePanel } from '@/components/response-panel'
@@ -13,11 +13,18 @@ import { useVentStore } from '@/store/vent-store'
 
 type VentStage = 'selecting' | 'writing'
 
+const selectionSubtitles = [
+  'Same thought. Different lens.',
+  'Choose the voice that meets this moment.',
+  'Five ways to hear yourself think.',
+]
+
 interface VentPageClientProps {
   initialPersonality: PersonalityKey | null
 }
 
 export function VentPageClient({ initialPersonality }: VentPageClientProps) {
+  const shouldReduceMotion = useReducedMotion()
   const currentVentText = useVentStore((state) => state.currentVentText)
   const activePersonality = useVentStore((state) => state.activePersonality)
   const setCurrentVentText = useVentStore((state) => state.setCurrentVentText)
@@ -31,6 +38,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
   const [generationKey, setGenerationKey] = useState(0)
   const [isGenerating, setIsGenerating] = useState(false)
   const [lastSubmittedAt, setLastSubmittedAt] = useState(0)
+  const [subtitleIndex, setSubtitleIndex] = useState(0)
 
   const cooldownMessages: Record<PersonalityKey, string> = {
     cotton: 'Take a breath. Try again in a moment.',
@@ -45,6 +53,16 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
 
     setActivePersonality(initialPersonality)
   }, [initialPersonality, setActivePersonality])
+
+  useEffect(() => {
+    if (shouldReduceMotion) return
+
+    const interval = window.setInterval(() => {
+      setSubtitleIndex((index) => (index + 1) % selectionSubtitles.length)
+    }, 4800)
+
+    return () => window.clearInterval(interval)
+  }, [shouldReduceMotion])
 
   function choosePersonality(personality: PersonalityKey) {
     setSelectedPersonality(personality)
@@ -83,23 +101,23 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
   }
 
   return (
-    <div className="relative mx-auto flex min-h-[calc(100vh-8.5rem)] max-w-5xl flex-col pb-4 pt-10 sm:pt-12">
-      {selectedPersonality ? (
+    <div className="relative mx-auto flex min-h-[calc(100vh-8.5rem)] max-w-5xl flex-col pb-4 pt-14 sm:pt-16">
+      {submittedText ? (
         <ActiveCharacter
           personality={activePersonality}
           variant="peek"
-          className="pointer-events-none fixed -bottom-10 -right-10 z-0 hidden h-[78vh] w-[24rem] lg:block 2xl:w-[34rem]"
+          className="pointer-events-none fixed -bottom-10 -right-44 z-0 hidden h-[68vh] w-[20rem] lg:block 2xl:-right-56 2xl:w-[28rem]"
         />
       ) : null}
 
-      <div className="relative z-10 mb-4 space-y-2 text-center">
+      <div className="relative z-10 mb-7 space-y-2 text-center">
         <p className="text-sm text-[var(--accent)]">Explore a different perspective.</p>
         <h1 className="text-balance font-display text-3xl font-medium leading-tight sm:text-4xl">
           Start with what&apos;s on your mind, and see what they say.
         </h1>
       </div>
 
-      <div className="relative z-10 mb-7">
+      <div className="relative z-10 mb-9">
         <PersonalitySelector
           value={stage === 'selecting' ? selectedPersonality : activePersonality}
           onValueChange={choosePersonality}
@@ -113,12 +131,24 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
             initial={{ opacity: 0, y: 12, scale: 0.985 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.985 }}
-            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-            className="glass-panel relative z-10 mx-auto w-full max-w-3xl rounded-[8px] p-8 text-center"
+            transition={{ duration: shouldReduceMotion ? 0 : 0.42, ease: [0.22, 1, 0.36, 1] }}
+            className="glass-panel soft-ring relative z-10 mx-auto w-full max-w-3xl rounded-[8px] p-8 text-center"
           >
             <p className="mx-auto max-w-md font-display text-3xl leading-10 text-foreground/82">
               Whose voice do you need to hear?
             </p>
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={shouldReduceMotion ? 'reduced' : subtitleIndex}
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 4 }}
+                animate={{ opacity: 0.62, y: 0 }}
+                exit={shouldReduceMotion ? undefined : { opacity: 0, y: -4 }}
+                transition={{ duration: shouldReduceMotion ? 0 : 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="mt-3 h-6 text-sm leading-6 text-muted"
+              >
+                {selectionSubtitles[shouldReduceMotion ? 0 : subtitleIndex]}
+              </motion.p>
+            </AnimatePresence>
           </motion.div>
         ) : (
           <motion.div
