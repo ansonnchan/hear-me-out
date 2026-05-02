@@ -81,7 +81,15 @@ export async function POST(request: Request) {
           role: 'system',
           content: `${getPersonalityPrompt(personality)}
 
-Keep the response to one paragraph, about 4 to 6 sentences. Do not use bullets, headings, numbered steps, or chat-like formatting.`,
+Keep the response to one paragraph, about 4 to 6 sentences.
+
+Do not use bullets, headings, numbered steps, or chat-like formatting.
+
+Do not begin with repeated stock phrases. Vary your opening naturally. Respond directly to the user's specific words instead of starting with a generic metaphor.
+
+Avoid repeating the same metaphor, rhythm, or sentence structure across responses.
+
+Do not sound scripted. Stay true to the active personality, but make each response feel newly written for this exact message.`,
         },
         {
           role: 'user',
