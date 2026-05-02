@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { personalities, personalityList, type PersonalityKey } from '@/lib/personalities'
 import { cn } from '@/lib/utils'
@@ -10,6 +9,14 @@ import { useVentStore } from '@/store/vent-store'
 
 type StatusMap = Partial<Record<PersonalityKey, 'idle' | 'loading' | 'complete' | 'error'>>
 type ErrorMap = Partial<Record<PersonalityKey, string>>
+
+const cooldownMessages: Record<PersonalityKey, string> = {
+  cotton: 'Take a breath. Try again in a moment.',
+  aristotle: 'Pause for a moment. Clear thinking needs a little space.',
+  ming: 'Let the water settle. Try again in a moment.',
+  angel: 'Take a breath. I am still here.',
+  'auntie-zhang': 'Slow down. One clean attempt at a time.',
+}
 
 interface ResponsePanelProps {
   originalText: string
@@ -22,6 +29,31 @@ function messageForStatus(status: number) {
   if (status === 400) return 'Write something first. Even one sentence.'
   if (status === 429) return 'Take a breath. Try again in a moment.'
   return 'Something went quiet. Try again in a moment.'
+}
+
+function ThinkingDots() {
+  return (
+    <span className="inline-flex items-center gap-1 text-[var(--accent)]" aria-label="Thinking">
+      <motion.span
+        animate={{ opacity: [0.25, 1, 0.25] }}
+        transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        animate={{ opacity: [0.25, 1, 0.25] }}
+        transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: 0.18 }}
+      >
+        .
+      </motion.span>
+      <motion.span
+        animate={{ opacity: [0.25, 1, 0.25] }}
+        transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut', delay: 0.36 }}
+      >
+        .
+      </motion.span>
+    </span>
+  )
 }
 
 export function ResponsePanel({
@@ -37,6 +69,7 @@ export function ResponsePanel({
   const [statuses, setStatuses] = useState<StatusMap>({})
   const [errors, setErrors] = useState<ErrorMap>({})
   const lastAutoGenerateKey = useRef(0)
+  const lastGeneratedAt = useRef(0)
 
   const generateResponse = useCallback(
     async (personality: PersonalityKey) => {
@@ -52,6 +85,16 @@ export function ResponsePanel({
 
       if (statuses[personality] === 'loading') return
 
+      const now = Date.now()
+      if (now - lastGeneratedAt.current < 4000) {
+        setErrors((current) => ({
+          ...current,
+          [personality]: cooldownMessages[personality],
+        }))
+        return
+      }
+
+      lastGeneratedAt.current = now
       setActivePersonality(personality)
       setStoreResponse(personality, '')
       setErrors((current) => ({ ...current, [personality]: undefined }))
@@ -160,7 +203,7 @@ export function ResponsePanel({
               >
                 <span aria-hidden="true">{personality.emoji}</span>
                 <span>{personality.name}</span>
-                {loading ? <Loader2 size={13} className="animate-spin" aria-hidden="true" /> : null}
+                {loading ? <span className="text-[var(--accent)]" aria-hidden="true">...</span> : null}
                 {generated && !loading ? (
                   <span
                     className="h-1.5 w-1.5 rounded-full"
@@ -206,9 +249,7 @@ export function ResponsePanel({
                 <div className="whitespace-pre-wrap text-lg leading-8 text-foreground/88">
                   {activeResponse}
                   {isLoading ? (
-                    <span className="ml-1 inline-flex translate-y-1 text-[var(--accent)]">
-                      <Loader2 size={16} className="animate-spin" aria-label="Listening" />
-                    </span>
+                    <ThinkingDots />
                   ) : null}
                 </div>
 

@@ -1,5 +1,10 @@
-import Link from 'next/link'
+'use client'
+
+import Image from 'next/image'
+import { KeyboardEvent, useState } from 'react'
+import { personalityImages } from '@/lib/personality-assets'
 import { personalities, type PersonalityKey } from '@/lib/personalities'
+import { cn } from '@/lib/utils'
 
 const personalityDescriptions: Record<PersonalityKey, string> = {
   cotton:
@@ -19,38 +24,74 @@ interface PersonalityIntroCardProps {
 }
 
 export function PersonalityIntroCard({ personalityKey }: PersonalityIntroCardProps) {
+  const [isFlipped, setIsFlipped] = useState(false)
   const personality = personalities[personalityKey]
 
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      setIsFlipped((flipped) => !flipped)
+    }
+  }
+
   return (
-    <Link
-      href={`/vent?personality=${personality.key}`}
-      className="group relative block min-h-full overflow-hidden rounded-[8px] bg-[rgba(255,255,255,0.035)] p-5 transition-all duration-300 ease-soft hover:-translate-y-1 hover:bg-[rgba(255,255,255,0.055)] sm:p-6"
-      style={{
-        boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${personality.accent} 22%, transparent)`,
-      }}
+    <button
+      type="button"
+      onClick={() => setIsFlipped((flipped) => !flipped)}
+      onKeyDown={handleKeyDown}
+      className="group h-[420px] w-[280px] shrink-0 snap-center rounded-[8px] text-left outline-none [perspective:1200px] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-[310px]"
+      aria-pressed={isFlipped}
+      aria-label={`${personality.name}. Flip card`}
     >
       <span
-        className="pointer-events-none absolute inset-x-6 top-0 h-px opacity-70 transition-opacity duration-300 group-hover:opacity-100"
-        style={{ backgroundColor: personality.accent }}
-      />
-      <span
-        className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full opacity-0 blur-3xl transition-opacity duration-300 group-hover:opacity-100"
-        style={{ backgroundColor: personality.glow }}
-      />
-
-      <div className="relative space-y-4">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl" aria-hidden="true">
-            {personality.emoji}
+        className={cn(
+          'relative block h-full w-full rounded-[8px] transition-transform duration-500 ease-soft [transform-style:preserve-3d]',
+          isFlipped && '[transform:rotateY(180deg)]',
+        )}
+      >
+        <span
+          className="absolute inset-0 overflow-hidden rounded-[8px] bg-[rgba(255,255,255,0.035)] [backface-visibility:hidden]"
+          style={{
+            boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${personality.accent} 22%, transparent)`,
+          }}
+        >
+          <span
+            className="pointer-events-none absolute inset-x-6 top-0 z-10 h-px opacity-70 transition-opacity duration-300 group-hover:opacity-100"
+            style={{ backgroundColor: personality.accent }}
+          />
+          <span
+            className="pointer-events-none absolute -right-10 -top-10 z-10 h-36 w-36 rounded-full opacity-0 blur-3xl transition-opacity duration-300 group-hover:opacity-100"
+            style={{ backgroundColor: personality.glow }}
+          />
+          <Image
+            src={personalityImages[personality.key]}
+            alt=""
+            className="h-[290px] w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-[1.025]"
+            sizes="(max-width: 640px) 280px, 310px"
+            placeholder="blur"
+          />
+          <span className="block p-5">
+            <span className="block font-display text-2xl font-medium">{personality.name}</span>
+            <span className="mt-1 block text-sm text-muted">{personality.tagline}</span>
           </span>
-          <div>
-            <h3 className="font-display text-2xl font-medium">{personality.name}</h3>
-            <p className="text-sm text-muted">{personality.tagline}</p>
-          </div>
-        </div>
+        </span>
 
-        <p className="text-[15px] leading-7 text-foreground/70">{personalityDescriptions[personality.key]}</p>
-      </div>
-    </Link>
+        <span
+          className="absolute inset-0 flex rounded-[8px] bg-[rgba(255,255,255,0.05)] p-6 [backface-visibility:hidden] [transform:rotateY(180deg)]"
+          style={{
+            boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${personality.accent} 28%, transparent), 0 18px 70px ${personality.glow}`,
+          }}
+        >
+          <span className="my-auto block">
+            <span className="block font-display text-3xl font-medium">{personality.name}</span>
+            <span className="mt-5 block text-[15px] leading-7 text-foreground/72">
+              {personalityDescriptions[personality.key]}
+            </span>
+            <span className="mt-6 block text-xs text-muted">Tap to return.</span>
+          </span>
+        </span>
+      </span>
+    </button>
   )
 }
+

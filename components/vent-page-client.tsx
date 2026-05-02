@@ -1,9 +1,11 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { PersonalitySelector } from '@/components/personality-selector'
 import { ResponsePanel } from '@/components/response-panel'
 import { VentInput } from '@/components/vent-input'
+import { personalityAtmospheres } from '@/lib/personality-assets'
 import { type PersonalityKey } from '@/lib/personalities'
 import { useVentStore } from '@/store/vent-store'
 
@@ -24,6 +26,15 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
   const [error, setError] = useState<string | null>(null)
   const [generationKey, setGenerationKey] = useState(0)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [lastSubmittedAt, setLastSubmittedAt] = useState(0)
+
+  const cooldownMessages: Record<PersonalityKey, string> = {
+    cotton: 'Take a breath. Try again in a moment.',
+    aristotle: 'Pause for a moment. Clear thinking needs a little space.',
+    ming: 'Let the water settle. Try again in a moment.',
+    angel: 'Take a breath. I am still here.',
+    'auntie-zhang': 'Slow down. One clean attempt at a time.',
+  }
 
   useEffect(() => {
     if (!initialPersonality) return
@@ -39,6 +50,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
 
   function submit() {
     const trimmed = currentVentText.trim()
+    const now = Date.now()
 
     if (!selectedPersonality) {
       setError('Choose a voice first.')
@@ -51,7 +63,13 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
       return
     }
 
+    if (now - lastSubmittedAt < 4000) {
+      setError(cooldownMessages[selectedPersonality])
+      return
+    }
+
     setError(null)
+    setLastSubmittedAt(now)
     setResponses({})
     setActivePersonality(selectedPersonality)
     setSubmittedText(trimmed)
@@ -59,15 +77,25 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl pb-12 pt-10 sm:pt-16">
-      <div className="mb-8 space-y-4 text-center">
+    <div className="relative mx-auto max-w-4xl pb-12 pt-8 sm:pt-10">
+      {selectedPersonality ? (
+        <Image
+          src={personalityAtmospheres[selectedPersonality]}
+          alt=""
+          className="pointer-events-none fixed bottom-0 right-0 z-0 hidden max-h-[54vh] w-auto translate-x-10 object-contain opacity-[0.055] lg:block"
+          sizes="420px"
+          priority={false}
+        />
+      ) : null}
+
+      <div className="relative z-10 mb-6 space-y-3 text-center">
         <p className="text-sm text-[var(--accent)]">Same thought, different lens.</p>
-        <h1 className="text-balance font-display text-5xl font-medium leading-tight sm:text-6xl">
+        <h1 className="text-balance font-display text-4xl font-medium leading-tight sm:text-5xl">
           Let the first sentence arrive.
         </h1>
       </div>
 
-      <div className="space-y-5">
+      <div className="relative z-10 space-y-4">
         <PersonalitySelector value={selectedPersonality} onValueChange={choosePersonality} />
 
         {stage === 'selecting' ? (
@@ -83,6 +111,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
             onSubmit={submit}
             isLoading={isGenerating}
             error={error}
+            compact={Boolean(submittedText)}
           />
         )}
       </div>
@@ -93,7 +122,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
           originalText={submittedText}
           autoGenerateKey={generationKey}
           onGeneratingChange={setIsGenerating}
-          className="mt-12"
+          className="relative z-10 mt-7"
         />
       ) : null}
     </div>

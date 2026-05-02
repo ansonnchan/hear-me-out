@@ -11,17 +11,19 @@ interface VentInputProps {
   onSubmit: () => void
   isLoading?: boolean
   error?: string | null
+  compact?: boolean
 }
 
-export function VentInput({ value, onChange, onSubmit, isLoading = false, error }: VentInputProps) {
+export function VentInput({ value, onChange, onSubmit, isLoading = false, error, compact = false }: VentInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   useEffect(() => {
     const textarea = textareaRef.current
     if (!textarea) return
+    const minHeight = compact ? 160 : 240
     textarea.style.height = 'auto'
-    textarea.style.height = `${Math.max(textarea.scrollHeight, 240)}px`
-  }, [value])
+    textarea.style.height = `${Math.max(textarea.scrollHeight, minHeight)}px`
+  }, [compact, value])
 
   function submit(event?: FormEvent) {
     event?.preventDefault()
@@ -48,7 +50,10 @@ export function VentInput({ value, onChange, onSubmit, isLoading = false, error 
             }
           }}
           placeholder="What's on your mind? Write it all down. No one's judging."
-          className="min-h-[240px] w-full resize-none bg-transparent px-6 py-6 text-lg leading-8 text-foreground outline-none placeholder:text-foreground/30 disabled:opacity-70 sm:px-8 sm:py-8 sm:text-xl"
+          className={cn(
+            'w-full resize-none bg-transparent px-6 py-6 text-lg leading-8 text-foreground outline-none placeholder:text-foreground/30 disabled:opacity-70 sm:px-8 sm:py-8 sm:text-xl',
+            compact ? 'min-h-[160px]' : 'min-h-[240px]',
+          )}
           rows={6}
         />
         <div className="pointer-events-none absolute bottom-4 right-5 text-xs text-muted">
