@@ -119,6 +119,8 @@ export async function POST(request: Request) {
   })
 
   if (!groq) {
+    headers.set('X-AI-Provider', 'mock')
+
     return new Response(
       streamText(mockResponse(personality, message), () => {
         console.info('[vent.ai] api.chat.completed', {
@@ -133,6 +135,8 @@ export async function POST(request: Request) {
   }
 
   try {
+    headers.set('X-AI-Provider', 'groq')
+
     const completion = await groq.chat.completions.create({
       model: AI_MODEL,
       stream: true,
