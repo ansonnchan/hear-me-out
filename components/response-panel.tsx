@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { personalities, personalityList, type PersonalityKey } from '@/lib/personalities'
+import { personalities, type PersonalityKey } from '@/lib/personalities'
 import { cn } from '@/lib/utils'
 import { useVentStore } from '@/store/vent-store'
 
@@ -178,46 +178,9 @@ export function ResponsePanel({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-      className={cn('space-y-5', className)}
+      className={cn('flex h-full min-h-0 flex-col space-y-4', className)}
     >
-      <div className="overflow-x-auto pb-2">
-        <div className="flex min-w-max gap-3">
-          {personalityList.map((personality) => {
-            const selected = activePersonality === personality.key
-            const generated = Boolean(responses[personality.key])
-            const loading = statuses[personality.key] === 'loading'
-
-            return (
-              <button
-                key={personality.key}
-                type="button"
-                onClick={() => setActivePersonality(personality.key)}
-                className={cn(
-                  'inline-flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-all duration-300 ease-soft',
-                  selected
-                    ? 'bg-[var(--color-surface-strong)] text-foreground shadow-[0_0_34px_var(--glow)]'
-                    : 'border-[var(--color-border)] bg-[rgba(255,255,255,0.025)] text-muted hover:bg-[var(--color-surface)] hover:text-foreground',
-                )}
-                style={{ borderColor: selected ? personality.accent : undefined }}
-                aria-pressed={selected}
-              >
-                <span aria-hidden="true">{personality.emoji}</span>
-                <span>{personality.name}</span>
-                {loading ? <span className="text-[var(--accent)]" aria-hidden="true">...</span> : null}
-                {generated && !loading ? (
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{ backgroundColor: personality.accent }}
-                    aria-hidden="true"
-                  />
-                ) : null}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      <div className="glass-panel relative overflow-hidden rounded-[8px] p-6 transition-all duration-400 ease-in-out sm:p-8">
+      <div className="glass-panel relative min-h-[260px] flex-1 overflow-hidden rounded-[8px] p-5 transition-all duration-400 ease-in-out sm:p-6">
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-70 transition-colors duration-400"
           style={{
@@ -232,20 +195,10 @@ export function ResponsePanel({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-            className="relative min-h-[240px]"
+            className="relative flex h-full min-h-[220px] flex-col"
           >
-            <div className="mb-7 flex items-center gap-3">
-              <span className="text-2xl" aria-hidden="true">
-                {active.emoji}
-              </span>
-              <div>
-                <h2 className="font-display text-2xl font-medium">{active.name}</h2>
-                <p className="text-sm text-muted">{active.tagline}</p>
-              </div>
-            </div>
-
             {hasResponse || isLoading ? (
-              <div className="space-y-7">
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
                 <div className="whitespace-pre-wrap text-lg leading-8 text-foreground/88">
                   {activeResponse}
                   {isLoading ? (
@@ -256,7 +209,7 @@ export function ResponsePanel({
                 {activeError ? <p className="text-sm text-[var(--accent)]">{activeError}</p> : null}
               </div>
             ) : (
-              <div className="flex min-h-[150px] flex-col items-center justify-center gap-5 text-center">
+              <div className="flex min-h-[220px] flex-1 flex-col items-center justify-center gap-5 text-center">
                 <p className="max-w-md font-display text-2xl leading-9 text-foreground/78">
                   Same thought, different lens.
                 </p>

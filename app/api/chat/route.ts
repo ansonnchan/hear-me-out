@@ -35,7 +35,7 @@ function mockResponse(personality: PersonalityKey, message: string) {
     aristotle: `The first useful move is to separate the feeling from the question. Something in this matters to you, and something in it feels uncertain. Stay with the central issue, then take the next small step that reduces confusion rather than trying to solve the whole knot at once.`,
     ming: `Let the mind set down what it has been carrying. Not everything asks to be solved tonight. A journey of a thousand miles begins with a single step, and sometimes the first step is simply seeing the ground beneath you again.`,
     angel: `I want you to notice that you are still trying to name the truth instead of abandoning yourself inside it. That matters. Whatever this day has asked of you, you are not weak for needing tenderness around it.`,
-    'auntie-zhang': `$Be honest with yourself, but do not be cruel. The next move does not need drama. Choose one concrete action you can stand behind, do it cleanly, and let that prove to you that you are not as stuck as the feeling says.`,
+    'auntie-zhang': `Be honest with yourself, but do not be cruel. The next move does not need drama. Choose one concrete action you can stand behind, do it cleanly, and let that prove to you that you are not as stuck as the feeling says.`,
   }
 
   return copy[personality] ?? `${personalities[personality].name} is listening. Give the thought a little more room.`
@@ -75,11 +75,13 @@ export async function POST(request: Request) {
       model: AI_MODEL,
       stream: true,
       temperature: 0.72,
-      max_tokens: 760,
+      max_tokens: 280,
       messages: [
         {
           role: 'system',
-          content: getPersonalityPrompt(personality),
+          content: `${getPersonalityPrompt(personality)}
+
+Keep the response to one paragraph, about 4 to 6 sentences. Do not use bullets, headings, numbered steps, or chat-like formatting.`,
         },
         {
           role: 'user',

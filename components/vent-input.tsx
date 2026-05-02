@@ -1,7 +1,6 @@
 'use client'
 
 import { FormEvent, useEffect, useRef } from 'react'
-import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -12,18 +11,28 @@ interface VentInputProps {
   isLoading?: boolean
   error?: string | null
   compact?: boolean
+  fill?: boolean
 }
 
-export function VentInput({ value, onChange, onSubmit, isLoading = false, error, compact = false }: VentInputProps) {
+export function VentInput({
+  value,
+  onChange,
+  onSubmit,
+  isLoading = false,
+  error,
+  compact = false,
+  fill = false,
+}: VentInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   useEffect(() => {
     const textarea = textareaRef.current
     if (!textarea) return
+    if (fill) return
     const minHeight = compact ? 160 : 240
     textarea.style.height = 'auto'
     textarea.style.height = `${Math.max(textarea.scrollHeight, minHeight)}px`
-  }, [compact, value])
+  }, [compact, fill, value])
 
   function submit(event?: FormEvent) {
     event?.preventDefault()
@@ -31,11 +40,12 @@ export function VentInput({ value, onChange, onSubmit, isLoading = false, error,
   }
 
   return (
-    <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} className={cn('space-y-4', fill && 'flex h-full min-h-0 flex-col')}>
       <div
         className={cn(
           'glass-panel relative overflow-hidden rounded-[8px] transition-all duration-300',
           'focus-within:border-[var(--accent)] focus-within:shadow-[0_0_58px_var(--glow)]',
+          fill && 'flex min-h-0 flex-1',
         )}
       >
         <textarea
@@ -53,6 +63,7 @@ export function VentInput({ value, onChange, onSubmit, isLoading = false, error,
           className={cn(
             'w-full resize-none bg-transparent px-6 py-6 text-lg leading-8 text-foreground outline-none placeholder:text-foreground/30 disabled:opacity-70 sm:px-8 sm:py-8 sm:text-xl',
             compact ? 'min-h-[160px]' : 'min-h-[240px]',
+            fill && 'h-full min-h-0 overflow-y-auto',
           )}
           rows={6}
         />
@@ -64,8 +75,7 @@ export function VentInput({ value, onChange, onSubmit, isLoading = false, error,
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="min-h-5 text-sm text-[var(--accent)]">{error}</p>
         <Button type="submit" variant="primary" size="lg" disabled={isLoading}>
-          {isLoading ? <Loader2 size={17} className="animate-spin" aria-hidden="true" /> : null}
-          Let it out
+          {isLoading ? 'Listening...' : 'Let it out'}
         </Button>
       </div>
     </form>

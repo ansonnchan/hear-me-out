@@ -18,12 +18,9 @@ export function PersonalityShowcase() {
 
   return (
     <div className="relative">
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-background to-transparent" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-background to-transparent" />
-
       <div
         ref={scrollRef}
-        className="mx-auto flex max-w-full snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="mx-auto flex max-w-full snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-1 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {personalityList.map((personality) => (
           <PersonalityIntroCard key={personality.key} personalityKey={personality.key} />

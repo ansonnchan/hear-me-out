@@ -13,7 +13,7 @@ export function LandingHero() {
           </h1>
 
           <p className="mx-auto max-w-xl text-lg leading-8 text-muted">
-            Let it all out.
+            Don&apos;t keep it bottled up.
           </p>
 
           <p className="text-xs text-muted/70">
