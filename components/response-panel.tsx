@@ -22,6 +22,7 @@ interface ResponsePanelProps {
   originalText: string
   autoGenerateKey?: number
   onGeneratingChange?: (isGenerating: boolean) => void
+  onClearPrompt?: () => void
   className?: string
 }
 
@@ -60,6 +61,7 @@ export function ResponsePanel({
   originalText,
   autoGenerateKey = 0,
   onGeneratingChange,
+  onClearPrompt,
   className,
 }: ResponsePanelProps) {
   const activePersonality = useVentStore((state) => state.activePersonality)
@@ -68,6 +70,7 @@ export function ResponsePanel({
   const setStoreResponse = useVentStore((state) => state.setResponse)
   const [statuses, setStatuses] = useState<StatusMap>({})
   const [errors, setErrors] = useState<ErrorMap>({})
+  const [visiblePersonality, setVisiblePersonality] = useState<PersonalityKey | null>(null)
   const lastAutoGenerateKey = useRef(0)
   const lastGeneratedAt = useRef(0)
 
@@ -95,6 +98,7 @@ export function ResponsePanel({
       }
 
       lastGeneratedAt.current = now
+      setVisiblePersonality(personality)
       setActivePersonality(personality)
       setStoreResponse(personality, '')
       setErrors((current) => ({ ...current, [personality]: undefined }))
@@ -167,7 +171,7 @@ export function ResponsePanel({
   }, [activePersonality, autoGenerateKey, generateResponse])
 
   const active = personalities[activePersonality]
-  const activeResponse = responses[activePersonality]
+  const activeResponse = visiblePersonality === activePersonality ? responses[activePersonality] : ''
   const activeStatus = statuses[activePersonality]
   const activeError = errors[activePersonality]
   const isLoading = activeStatus === 'loading'
@@ -175,8 +179,10 @@ export function ResponsePanel({
 
   function clearResponse() {
     setStoreResponse(activePersonality, '')
+    setVisiblePersonality(null)
     setErrors((current) => ({ ...current, [activePersonality]: undefined }))
     setStatuses((current) => ({ ...current, [activePersonality]: 'idle' }))
+    onClearPrompt?.()
   }
 
   return (
@@ -205,6 +211,9 @@ export function ResponsePanel({
           >
             {hasResponse || isLoading ? (
               <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
+                <p className="border-l border-[color-mix(in_srgb,var(--accent)_36%,transparent)] pl-4 text-sm leading-6 text-muted">
+                  {originalText}
+                </p>
                 <div className="whitespace-pre-wrap text-lg leading-8 text-foreground/88">
                   {activeResponse}
                   {isLoading ? (
@@ -215,12 +224,15 @@ export function ResponsePanel({
                 {activeError ? <p className="text-sm text-[var(--accent)]">{activeError}</p> : null}
               </div>
             ) : (
-              <div className="flex min-h-[220px] flex-1 flex-col items-center justify-center gap-5 text-center">
-                <p className="max-w-md font-display text-2xl leading-9 text-foreground/78">
-                  Same thought, different lens.
-                </p>
+              <div className="flex min-h-[260px] flex-1 flex-col items-center justify-center text-center">
                 {activeError ? <p className="text-sm text-[var(--accent)]">{activeError}</p> : null}
-                <Button type="button" variant="primary" onClick={() => generateResponse(activePersonality)}>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="lg"
+                  className="px-8 text-lg shadow-[0_0_42px_color-mix(in_srgb,var(--accent)_24%,transparent)]"
+                  onClick={() => generateResponse(activePersonality)}
+                >
                   Hear from {active.name}
                 </Button>
               </div>
@@ -231,7 +243,14 @@ export function ResponsePanel({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="min-h-5 text-sm text-[var(--accent)]" />
-        <Button type="button" variant="secondary" size="lg" onClick={clearResponse} disabled={isLoading || !hasResponse}>
+        <Button
+          type="button"
+          variant="secondary"
+          size="lg"
+          onClick={clearResponse}
+          disabled={isLoading || !hasResponse}
+          className="border-[color-mix(in_srgb,var(--accent)_48%,transparent)] bg-transparent text-[var(--accent)] shadow-[0_0_24px_color-mix(in_srgb,var(--accent)_14%,transparent)] hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]"
+        >
           Clear response
         </Button>
       </div>

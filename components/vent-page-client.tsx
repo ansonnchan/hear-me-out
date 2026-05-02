@@ -100,6 +100,13 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
     setGenerationKey((key) => key + 1)
   }
 
+  function clearSubmittedPrompt() {
+    setSubmittedText('')
+    setCurrentVent('')
+    setResponses({})
+    setError(null)
+  }
+
   return (
     <div className="relative mx-auto flex min-h-[calc(100vh-8.5rem)] max-w-5xl flex-col pb-4 pt-14 sm:pt-16">
       {submittedText ? (
@@ -161,8 +168,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
           >
             <section className="flex min-h-0 flex-col">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-sm text-muted">{submittedText ? 'Write another thought when you are ready.' : 'Write what is here.'}</p>
-                {submittedText ? <p className="hidden text-xs text-muted sm:block">The current reflection stays on the right.</p> : null}
+                <p className="truncate text-sm text-muted">{submittedText ? "Write another thought when you're ready." : 'Write what is here.'}</p>
               </div>
               <div className="min-h-0 flex-1">
                 <VentInput
@@ -178,10 +184,6 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
             </section>
 
             <section className="relative flex min-h-[360px] flex-col lg:min-h-0">
-              <div className="mb-3 flex min-h-5 items-center justify-between gap-3">
-                <p className="text-sm text-muted">{submittedText ? 'Reflection' : 'Waiting for your thought.'}</p>
-                {submittedText ? <p className="hidden text-xs text-muted sm:block">Switch lenses above.</p> : null}
-              </div>
               {selectedPersonality ? (
                 <ActiveCharacter
                   personality={activePersonality}
@@ -205,6 +207,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
                         originalText={submittedText}
                         autoGenerateKey={generationKey}
                         onGeneratingChange={setIsGenerating}
+                        onClearPrompt={clearSubmittedPrompt}
                       />
                     </motion.div>
                   ) : (
