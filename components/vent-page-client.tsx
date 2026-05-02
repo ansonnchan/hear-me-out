@@ -90,9 +90,9 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
       ) : null}
 
       <div className="relative z-10 mb-4 space-y-2 text-center">
-        <p className="text-sm text-[var(--accent)]">Same thought, different lens.</p>
+        <p className="text-sm text-[var(--accent)]">Explore a different perspective.</p>
         <h1 className="text-balance font-display text-3xl font-medium leading-tight sm:text-4xl">
-          Let the first sentence arrive.
+          Start with what's on your mind, and see what they say.
         </h1>
       </div>
 
@@ -106,7 +106,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
       {stage === 'selecting' ? (
         <div className="glass-panel relative z-10 mx-auto w-full max-w-3xl rounded-[8px] p-8 text-center">
           <p className="mx-auto max-w-md font-display text-3xl leading-10 text-foreground/82">
-            Who should sit with this?
+            Whose voice do you need to hear?
           </p>
         </div>
       ) : (

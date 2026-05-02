@@ -59,7 +59,7 @@ export function VentInput({
               onSubmit()
             }
           }}
-          placeholder="What's on your mind? Write it all down. No one's judging."
+          placeholder="What's on your mind today?"
           className={cn(
             'w-full resize-none bg-transparent px-6 py-6 text-lg leading-8 text-foreground outline-none placeholder:text-foreground/30 disabled:opacity-70 sm:px-8 sm:py-8 sm:text-xl',
             compact ? 'min-h-[160px]' : 'min-h-[240px]',

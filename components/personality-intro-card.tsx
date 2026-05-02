@@ -84,7 +84,7 @@ export function PersonalityIntroCard({ personalityKey }: PersonalityIntroCardPro
         >
           <span className="my-auto block">
             <span className="block font-display text-3xl font-medium">{personality.name}</span>
-            <span className="mt-5 block text-[15px] leading-7 text-foreground/72">
+            <span className="font-serif-copy mt-5 block text-[15px] leading-7 text-foreground/72">
               {personalityDescriptions[personality.key]}
             </span>
             <span className="mt-6 block text-xs text-muted">Tap to return.</span>
@@ -94,4 +94,3 @@ export function PersonalityIntroCard({ personalityKey }: PersonalityIntroCardPro
     </button>
   )
 }
-

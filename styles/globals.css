@@ -77,6 +77,10 @@ a {
   font-family: var(--font-display), 'Fraunces', Georgia, serif;
 }
 
+.font-serif-copy {
+  font-family: 'Times New Roman', Times, serif;
+}
+
 .font-cjk {
   font-family: 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
 }
@@ -109,4 +113,3 @@ a {
     transition-duration: 0.01ms !important;
   }
 }
-
