@@ -30,7 +30,6 @@ export function QuoteDisplay() {
           >
             <p className="font-display text-base leading-7 text-foreground/45">{quote.english}</p>
             <p className="font-cjk text-sm leading-6 text-foreground/35">{quote.chinese}</p>
-            <p className="text-xs text-foreground/25">{quote.attribution}</p>
           </motion.div>
         ) : null}
       </AnimatePresence>

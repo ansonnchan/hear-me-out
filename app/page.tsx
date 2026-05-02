@@ -14,9 +14,9 @@ export default function HomePage() {
 
       <section className="mx-auto mt-12 max-w-5xl sm:mt-20">
         <div className="mb-8 max-w-2xl space-y-3">
-          <p className="text-sm text-[var(--accent)]">Choose the room you want to enter.</p>
+          {/* <p className="text-sm text-[var(--accent)]">Choose the room you want to enter.</p> */}
           <h2 className="font-display text-4xl font-medium leading-tight sm:text-5xl">
-            Five ways to hear yourself think
+             who do you want to vent to?
           </h2>
         </div>
 
