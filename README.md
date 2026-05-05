@@ -4,6 +4,20 @@ Same thought. Different lens.
 
 vent.ai is an ephemeral AI reflection app for writing what is on your mind and hearing it reflected through distinct personality perspectives. It is designed to feel calm, private, and lightweight: no accounts, no saved history, and no persistent user data.
 
+## Preview
+
+<p align="center">
+  <img src="assets/vent.ai_pic1.png" alt="Vent.ai Home Page" width="800">
+  <br>
+vent.ai's home page</em>
+</p>
+<br>
+<p align="center">
+  <img src="assets/vent.ai_pic2.png" alt="Chatting with Angel" width="800">
+  <br>
+ Chat with Angel, one of the AI personalities</em>
+</p>
+
 ## AI Personalities
 
 vent.ai includes five personality modes, each with its own tone, visual accent, and response style:
