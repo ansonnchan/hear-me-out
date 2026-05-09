@@ -7,6 +7,7 @@ import { ResponsePanel } from '@/components/response-panel'
 import { VentInput } from '@/components/vent-input'
 import { WhyPersonaPanel } from '@/components/why-persona-panel'
 import { routePersona, type PersonaRouteResult } from '@/lib/ai/persona-router'
+import { recordClientMetric } from '@/lib/client-metrics'
 import { type PersonalityKey } from '@/lib/personalities'
 import { useVentStore } from '@/store/vent-store'
 
@@ -74,6 +75,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
   }, [currentVentText])
 
   function choosePersonality(personality: PersonalityKey) {
+    recordClientMetric('personality_switch', { personality })
     setSelectedPersonality(personality)
     setActivePersonality(personality)
     setAcceptedSuggestedPersona(null)
@@ -107,6 +109,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
 
     setError(null)
     setLastSubmittedAt(now)
+    recordClientMetric('vent_submitted', { personality: activePersonality, characters: trimmed.length })
     setResponses({})
     setSafetyNote(null)
     setCurrentVent(trimmed)
@@ -138,10 +141,10 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
         className="pointer-events-none fixed bottom-6 right-3 z-0 hidden h-[46vh] w-24 xl:block 2xl:w-36"
       />
 
-      <div className="relative z-10 mb-4 space-y-2 text-center">
-        <p className="text-sm text-[var(--accent)]">Same thought, different lens.</p>
+      <div className="relative z-10 mb-7 space-y-2 text-center">
+        <p className="text-sm text-[var(--accent)]">Explore a different perspective.</p>
         <h1 className="text-balance font-display text-3xl font-medium leading-tight sm:text-4xl">
-          Let the first sentence arrive.
+          Start with what&apos;s on your mind, and see what they say.
         </h1>
       </div>
 

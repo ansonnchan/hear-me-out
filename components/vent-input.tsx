@@ -44,7 +44,8 @@ export function VentInput({
       <div
         className={cn(
           'glass-panel relative overflow-hidden rounded-[8px] transition-all duration-300',
-          'focus-within:border-[var(--accent)] focus-within:shadow-[0_0_58px_var(--glow)]',
+          'border-[color-mix(in_srgb,var(--accent)_30%,transparent)] shadow-[0_0_46px_color-mix(in_srgb,var(--accent)_24%,transparent)]',
+          'focus-within:border-[var(--accent)] focus-within:shadow-[0_0_68px_color-mix(in_srgb,var(--accent)_34%,transparent)]',
           fill && 'flex min-h-0 flex-1',
         )}
       >
@@ -59,7 +60,7 @@ export function VentInput({
               onSubmit()
             }
           }}
-          placeholder="What's on your mind? Write it all down. No one's judging."
+          placeholder="What's on your mind today?"
           className={cn(
             'w-full resize-none bg-transparent px-6 py-6 text-lg leading-8 text-foreground outline-none placeholder:text-foreground/30 disabled:opacity-70 sm:px-8 sm:py-8 sm:text-xl',
             compact ? 'min-h-[160px]' : 'min-h-[240px]',

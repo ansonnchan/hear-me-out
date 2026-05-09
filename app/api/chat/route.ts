@@ -3,6 +3,7 @@ import { AI_MODEL, groq } from '@/lib/ai'
 import { compressContext, type CompressedContext } from '@/lib/ai/context-compressor'
 import { routePersona, type PersonaRouteResult, type PersonalityId } from '@/lib/ai/persona-router'
 import { routeSafety, type SafetyRouteResult } from '@/lib/ai/safety-router'
+import { applyRateLimitHeaders, checkChatRateLimit } from '@/lib/rate-limit'
 import { getPersonalityPrompt, normalizePersonalityKey, personalities, type PersonalityKey } from '@/lib/personalities'
 
 interface ChatRequestBody {
@@ -21,6 +22,8 @@ type SessionMessage = {
   personality?: PersonalityKey
 }
 
+type RateLimitResult = Awaited<ReturnType<typeof checkChatRateLimit>>
+
 type ChatResponseMeta = {
   requestedPersona: PersonalityKey
   finalPersona: PersonalityKey
@@ -33,12 +36,36 @@ type ChatResponseMeta = {
 const RAW_MESSAGE_WINDOW = 12
 const MAX_SESSION_MESSAGES = 48
 const MAX_MESSAGE_CHARS = 5000
+const RESPONSE_WORD_LIMIT = 160
 
-function quietError(status: number) {
-  return NextResponse.json({ error: 'Something went quiet. Try again in a moment.' }, { status })
+function requestId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
 }
 
-function streamText(text: string) {
+function jsonHeaders(id: string, rateLimit: RateLimitResult | null) {
+  const headers = new Headers()
+  headers.set('X-Request-Id', id)
+  if (rateLimit) applyRateLimitHeaders(headers, rateLimit)
+  return headers
+}
+
+function streamHeaders(id: string, rateLimit: RateLimitResult | null) {
+  const headers = new Headers({
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    'X-Accel-Buffering': 'no',
+    'X-Request-Id': id,
+  })
+
+  if (rateLimit) applyRateLimitHeaders(headers, rateLimit)
+  return headers
+}
+
+function quietError(status: number, headers?: Headers) {
+  return NextResponse.json({ error: 'Something went quiet. Try again in a moment.' }, { status, headers })
+}
+
+function streamText(text: string, onComplete?: () => void) {
   const encoder = new TextEncoder()
   const chunks = text.split(/(\s+)/)
 
@@ -49,6 +76,7 @@ function streamText(text: string) {
       }
 
       controller.close()
+      onComplete?.()
     },
   })
 }
@@ -191,7 +219,7 @@ ${safetyInstruction}
 
 ${contextBlock}
 
-Keep the response to one paragraph, about 4 to 6 sentences. Do not use bullets, headings, numbered steps, or chat-like formatting.`,
+Keep the response to one paragraph, about 4 to 6 sentences, and under ${RESPONSE_WORD_LIMIT} words. Do not use bullets, headings, numbered steps, or chat-like formatting.`,
     },
     ...promptHistory.map((message) => ({
       role: message.role,
@@ -208,13 +236,29 @@ Keep the response to one paragraph, about 4 to 6 sentences. Do not use bullets, 
 }
 
 export async function POST(request: Request) {
-  const routeStartedAt = performance.now()
+  const id = requestId()
+  const requestStartedAt = performance.now()
+  let rateLimit: RateLimitResult | null = null
+
+  try {
+    rateLimit = await checkChatRateLimit(request)
+  } catch (error) {
+    console.error('[vent.ai] api.chat.rate_limit_failed', { requestId: id, error })
+  }
+
+  if (rateLimit && !rateLimit.success) {
+    return NextResponse.json(
+      { error: 'Take a breath. Try again in a moment.' },
+      { status: 429, headers: jsonHeaders(id, rateLimit) },
+    )
+  }
+
   let body: ChatRequestBody
 
   try {
     body = (await request.json()) as ChatRequestBody
   } catch {
-    return quietError(400)
+    return quietError(400, jsonHeaders(id, rateLimit))
   }
 
   const message = typeof body.message === 'string' ? body.message.trim().slice(0, MAX_MESSAGE_CHARS) : ''
@@ -225,11 +269,14 @@ export async function POST(request: Request) {
   const compressedContext = parseCompressedContext(body.compressedContext)
 
   if (!message) {
-    return NextResponse.json({ error: 'Write something first. Even one sentence.' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'Write something first. Even one sentence.' },
+      { status: 400, headers: jsonHeaders(id, rateLimit) },
+    )
   }
 
   if (!requestedPersona) {
-    return quietError(400)
+    return quietError(400, jsonHeaders(id, rateLimit))
   }
 
   const selectedPersona = acceptedSuggestedPersona ?? requestedPersona
@@ -246,7 +293,7 @@ export async function POST(request: Request) {
       selectedPersona: selectedPersona as PersonalityId,
     })
   } catch (error) {
-    console.error('Safety routing failed', error)
+    console.error('[vent.ai] api.chat.safety_routing_failed', { requestId: id, error })
     safetyRoute = {
       level: 'urgent_safety',
       shouldOverridePersona: true,
@@ -260,12 +307,7 @@ export async function POST(request: Request) {
     ? normalizePersonalityKey(safetyRoute.saferPersona) ?? 'cotton'
     : selectedPersona
 
-  const headers = new Headers({
-    'Content-Type': 'text/plain; charset=utf-8',
-    'Cache-Control': 'no-cache, no-transform',
-    'X-Accel-Buffering': 'no',
-  })
-
+  const headers = streamHeaders(id, rateLimit)
   headers.set(
     'X-Vent-Meta',
     encodeMetaHeader({
@@ -279,11 +321,26 @@ export async function POST(request: Request) {
   )
 
   if (!groq) {
-    headers.set('Server-Timing', `vent_prep;dur=${Math.round(performance.now() - routeStartedAt)}`)
-    return new Response(streamText(mockResponse(finalPersona, safetyRoute.level)), { headers })
+    headers.set('X-AI-Provider', 'mock')
+    headers.set('Server-Timing', `vent_prep;dur=${Math.round(performance.now() - requestStartedAt)}`)
+
+    return new Response(
+      streamText(mockResponse(finalPersona, safetyRoute.level), () => {
+        console.info('[vent.ai] api.chat.completed', {
+          requestId: id,
+          personality: finalPersona,
+          provider: 'mock',
+          serverTtftMs: 0,
+          totalMs: Math.round(performance.now() - requestStartedAt),
+        })
+      }),
+      { headers },
+    )
   }
 
   try {
+    headers.set('X-AI-Provider', 'groq')
+
     const completion = await groq.chat.completions.create({
       model: AI_MODEL,
       stream: true,
@@ -298,29 +355,36 @@ export async function POST(request: Request) {
       }),
     })
 
-    headers.set('Server-Timing', `vent_prep;dur=${Math.round(performance.now() - routeStartedAt)}`)
+    headers.set('Server-Timing', `vent_prep;dur=${Math.round(performance.now() - requestStartedAt)}`)
 
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
       async start(controller) {
-        let sawFirstToken = false
+        let firstTokenAt: number | null = null
 
         try {
           for await (const chunk of completion) {
             const delta = chunk.choices[0]?.delta?.content ?? ''
             if (!delta) continue
 
-            if (!sawFirstToken) {
-              sawFirstToken = true
-              console.info('vent.ai ttft_ms', Math.round(performance.now() - routeStartedAt))
+            if (!firstTokenAt) {
+              firstTokenAt = performance.now()
+              console.info('vent.ai ttft_ms', Math.round(firstTokenAt - requestStartedAt))
             }
 
             controller.enqueue(encoder.encode(delta))
           }
 
           controller.close()
+          console.info('[vent.ai] api.chat.completed', {
+            requestId: id,
+            personality: finalPersona,
+            provider: 'groq',
+            serverTtftMs: firstTokenAt ? Math.round(firstTokenAt - requestStartedAt) : null,
+            totalMs: Math.round(performance.now() - requestStartedAt),
+          })
         } catch (error) {
-          console.error('Groq stream failed', error)
+          console.error('[vent.ai] api.chat.stream_failed', { requestId: id, personality: finalPersona, error })
           controller.error(error)
         }
       },
@@ -328,7 +392,7 @@ export async function POST(request: Request) {
 
     return new Response(stream, { headers })
   } catch (error) {
-    console.error('Groq API failed', error)
-    return quietError(503)
+    console.error('[vent.ai] api.chat.groq_failed', { requestId: id, personality: finalPersona, error })
+    return quietError(503, jsonHeaders(id, rateLimit))
   }
 }
