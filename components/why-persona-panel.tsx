@@ -35,12 +35,16 @@ export function WhyPersonaPanel({
   return (
     <div
       className={cn(
-        'glass-panel flex flex-col gap-4 rounded-[8px] p-4 text-left shadow-[0_0_42px_var(--glow)] sm:flex-row sm:items-center sm:justify-between',
+        'glass-panel flex flex-col gap-4 rounded-[8px] p-4 text-left sm:flex-row sm:items-center sm:justify-between',
         className,
       )}
+      style={{
+        borderColor: `color-mix(in srgb, ${suggested.accent} 42%, transparent)`,
+        boxShadow: `0 0 46px ${suggested.glow}`,
+      }}
     >
       <div className="min-w-0">
-        <div className="mb-1 inline-flex items-center gap-2 text-xs font-medium text-[var(--accent)]">
+        <div className="mb-1 inline-flex items-center gap-2 text-xs font-medium" style={{ color: suggested.accent }}>
           <Sparkles size={14} strokeWidth={1.8} aria-hidden="true" />
           Suggested lens
         </div>
@@ -51,11 +55,28 @@ export function WhyPersonaPanel({
       </div>
 
       <div className="flex shrink-0 flex-wrap gap-2">
-        <Button type="button" variant="primary" size="sm" onClick={() => onUseSuggested(suggestion.suggestedPersona)}>
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          onClick={() => onUseSuggested(suggestion.suggestedPersona)}
+          style={{
+            backgroundColor: suggested.accent,
+            boxShadow: `0 0 28px ${suggested.glow}`,
+          }}
+        >
           <Check size={15} aria-hidden="true" />
           Use {suggested.name}
         </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={onKeepChoice}>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onKeepChoice}
+          style={{
+            borderColor: `color-mix(in srgb, ${suggested.accent} 40%, transparent)`,
+          }}
+        >
           <X size={15} aria-hidden="true" />
           Keep my choice
         </Button>

@@ -54,13 +54,14 @@ function chooseSaferPersona(message: string): 'cotton' | 'angel' {
 
 function localSafetyRoute(message: string, selectedPersona: PersonalityId): SafetyRouteResult {
   const saferPersona = chooseSaferPersona(message)
+  const alreadyGentle = selectedPersona === 'cotton' || selectedPersona === 'angel'
 
   if (urgentPatterns.some((pattern) => pattern.test(message))) {
     return {
       level: 'urgent_safety',
-      shouldOverridePersona: true,
-      saferPersona,
-      userFacingNote: 'Switched to a gentler response for this one.',
+      shouldOverridePersona: !alreadyGentle,
+      saferPersona: alreadyGentle ? undefined : saferPersona,
+      userFacingNote: alreadyGentle ? undefined : 'Switched to a gentler response for this one.',
       internalReason: 'Local safety heuristic found language suggesting possible immediate danger.',
     }
   }
@@ -116,11 +117,13 @@ function parseClassifierResult(text: string): SafetyClassifierResult | null {
 
 function routeFromLevel(level: SafetyLevel, selectedPersona: PersonalityId, saferPersona: 'cotton' | 'angel'): SafetyRouteResult {
   if (level === 'urgent_safety') {
+    const alreadyGentle = selectedPersona === 'cotton' || selectedPersona === 'angel'
+
     return {
       level,
-      shouldOverridePersona: true,
-      saferPersona,
-      userFacingNote: 'Switched to a gentler response for this one.',
+      shouldOverridePersona: !alreadyGentle,
+      saferPersona: alreadyGentle ? undefined : saferPersona,
+      userFacingNote: alreadyGentle ? undefined : 'Switched to a gentler response for this one.',
       internalReason: 'Safety classifier selected urgent_safety.',
     }
   }
