@@ -23,7 +23,7 @@ export function LandingHero() {
         </div>
 
         <div className="flex justify-center">
-          <Button asChild variant="primary" size="lg">
+          <Button asChild variant="primary" size="lg" className="shadow-none">
             <Link href="/vent">
               Let it out
               <ArrowRight size={17} aria-hidden="true" />

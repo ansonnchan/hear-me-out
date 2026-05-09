@@ -9,7 +9,7 @@ vent.ai is an ephemeral AI reflection app for writing what is on your mind and h
 - Polished welcome page with a quiet path into the writing flow.
 - Large, distraction-free vent input on `/vent`.
 - Five response personalities: Cotton, Aristotle, Venerable Ming, Angel, and Auntie Zhang.
-- Optional persona suggestion while writing. The user can accept it or ignore it.
+- Optional first-prompt persona suggestion after the user presses Enter or clicks the suggestion button.
 - Safety-aware response routing that can soften the tone for intense moments.
 - Progressive in-memory context compression for longer anonymous sessions.
 - One vent can be viewed through multiple lenses without retyping.
@@ -33,7 +33,7 @@ vent.ai is an ephemeral AI reflection app for writing what is on your mind and h
 
 The user starts on the landing page, chooses a personality, and writes a thought on `/vent`.
 
-The `/vent` route shows `PersonalitySelector`, `VentInput`, and the optional `WhyPersonaPanel`. The user can manually choose any of the five personalities at any time. Once the draft is long enough, a local heuristic can suggest a lens, but it never forces the choice.
+The `/vent` route shows `PersonalitySelector`, `VentInput`, and the optional first-prompt `PersonaSuggestionInput`. The user can manually choose any of the five personalities at any time. If the user writes into the helper input and presses Enter, a local weighted heuristic can suggest a lens and the suggested switch immediately submits the prompt.
 
 Submitting the text shows `ResponsePanel`, which streams the selected personality first and keeps generated responses in Zustand memory for instant tab switching. The client also keeps a temporary in-memory session message list so long sessions can retain continuity without writing vents to storage.
 
@@ -47,7 +47,7 @@ vent.ai is anonymous and session-local:
 - No persistent vent storage and no database for sensitive user text.
 - Manual persona selection remains the primary control.
 - Optional persona suggestion uses a free local heuristic in `lib/ai/persona-router.ts`.
-- Safety-aware response routing runs before generation and can switch to Cotton or Angel for a gentler response.
+- Safety-aware response routing runs before generation. When Groq is configured, a small classifier checks every message before the main response; local heuristics remain as fallback and for the first-prompt helper.
 - Progressive context compression summarizes older turns into Zustand memory only, then trims older raw turns from the client session.
 - Groq remains the main AI provider for streaming responses and compression.
 - TTFT instrumentation stays lightweight through stream timing logs and `Server-Timing` preparation headers.

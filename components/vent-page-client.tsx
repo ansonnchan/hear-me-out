@@ -26,19 +26,28 @@ const elevatedSafetyPatterns = [
   /\bi\s+can(?:'|no)t\s+(?:go\s+on|do\s+this|take\s+it|cope)\b/i,
   /\bi\s+do\s+not\s+want\s+to\s+(?:be\s+here|exist|wake\s+up)\b/i,
   /\bi\s+don't\s+want\s+to\s+(?:be\s+here|exist|wake\s+up)\b/i,
-  /\b(?:hopeless|worthless|empty|unbearable)\b/i,
+  /\b(?:hopeless|worthless|empty|unbearable|pointless)\b/i,
   /\b(?:panic\s+attack|severe\s+panic|breaking\s+point|no\s+way\s+out)\b/i,
   /\bfalling\s+apart\b/i,
+  /\b(?:no\s+reason\s+to\s+live|better\s+off\s+without\s+me|everyone\s+would\s+be\s+better\s+off)\b/i,
+  /\b(?:wish\s+i\s+was\s+dead|wish\s+i\s+were\s+dead|want\s+to\s+disappear|i\s+want\s+to\s+die)\b/i,
+  /\bi\s+(?:might|may)\s+do\s+something\s+(?:bad|dangerous|unsafe)\b/i,
+  /\bi\s+do\s+not\s+trust\s+myself\b/i,
+  /\bi\s+don't\s+trust\s+myself\b/i,
 ]
 const urgentSafetyPatterns = [
-  /\b(kill|hurt)\s+myself\b/i,
+  /\b(kill|hurt|harm)\s+myself\b/i,
   /\b(end|take)\s+my\s+life\b/i,
   /\bsuicid(?:e|al)\b/i,
   /\bself[-\s]?harm\b/i,
-  /\bi\s*(?:am|'m)?\s*(?:going to|gonna|about to)\s+(?:hurt|kill)\b/i,
+  /\bi\s*(?:am|'m)?\s*(?:going to|gonna|about to)\s+(?:hurt|harm|kill)\b/i,
   /\b(?:hurt|kill)\s+someone\b/i,
   /\bnot\s+safe\s+right\s+now\b/i,
+  /\bcan(?:'|no)t\s+keep\s+myself\s+safe\b/i,
   /\bimmediate\s+danger\b/i,
+  /\bi\s+have\s+a\s+plan\b/i,
+  /\bthis\s+is\s+my\s+(?:final|last)\s+(?:message|note|goodbye)\b/i,
+  /\bsaying\s+goodbye\b/i,
 ]
 
 function suggestionKey(text: string, suggestion: PersonaRouteResult | null) {
@@ -68,15 +77,16 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
   const addSessionMessage = useVentStore((state) => state.addSessionMessage)
   const setSafetyNote = useVentStore((state) => state.setSafetyNote)
   const [stage, setStage] = useState<VentStage>(initialPersonality ? 'writing' : 'selecting')
-  const [selectedPersonality, setSelectedPersonality] = useState<PersonalityKey>(initialPersonality ?? activePersonality)
+  const [selectedPersonality, setSelectedPersonality] = useState<PersonalityKey | null>(initialPersonality)
   const [submittedText, setSubmittedText] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [suggestionError, setSuggestionError] = useState<string | null>(null)
   const [generationKey, setGenerationKey] = useState(0)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isCheckingSuggestion, setIsCheckingSuggestion] = useState(false)
   const [lastSubmittedAt, setLastSubmittedAt] = useState(0)
   const [personaSuggestion, setPersonaSuggestion] = useState<PersonaRouteResult | null>(null)
   const [dismissedSuggestionKey, setDismissedSuggestionKey] = useState<string | null>(null)
-  const [acceptedSuggestedPersona, setAcceptedSuggestedPersona] = useState<PersonalityKey | null>(null)
   const [submittedAcceptedSuggestedPersona, setSubmittedAcceptedSuggestedPersona] = useState<PersonalityKey | null>(null)
   const [gentleLensPromptOpen, setGentleLensPromptOpen] = useState(false)
 
@@ -94,43 +104,91 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
     setActivePersonality(initialPersonality)
   }, [initialPersonality, setActivePersonality])
 
-  useEffect(() => {
-    const trimmed = currentVentText.trim()
-
-    if (stage !== 'selecting' || submittedText || trimmed.length < PERSONA_SUGGESTION_MIN_CHARS) {
-      return
-    }
-
-    const timeout = window.setTimeout(() => {
-      const suggestion = routePersona(trimmed)
-      setPersonaSuggestion(suggestion.confidence >= 0.4 ? suggestion : null)
-    }, 450)
-
-    return () => window.clearTimeout(timeout)
-  }, [currentVentText, stage, submittedText])
-
   function choosePersonality(personality: PersonalityKey) {
     recordClientMetric('personality_switch', { personality })
     setSelectedPersonality(personality)
     setActivePersonality(personality)
-    setAcceptedSuggestedPersona(null)
+    setSuggestionError(null)
+    setPersonaSuggestion(null)
     setStage('writing')
   }
 
-  function useSuggestedPersonality(personality: PersonalityKey) {
+  function changeSuggestionText(value: string) {
+    setCurrentVentText(value)
+    setSuggestionError(null)
+    setPersonaSuggestion(null)
+    setDismissedSuggestionKey(null)
+  }
+
+  async function shouldOfferGentleLensFromServer(message: string) {
+    try {
+      const response = await fetch('/api/safety', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          personality: selectedPersonality ?? 'auntie-zhang',
+        }),
+      })
+
+      if (!response.ok) return false
+
+      const result = (await response.json()) as { shouldOfferGentleLens?: unknown }
+      return result.shouldOfferGentleLens === true
+    } catch {
+      return false
+    }
+  }
+
+  async function requestPersonaSuggestion() {
+    const trimmed = currentVentText.trim()
+
+    if (stage !== 'selecting' || submittedText) return
+
+    setIsCheckingSuggestion(true)
+
+    if (shouldOfferGentleLens(trimmed, 'auntie-zhang')) {
+      setSuggestionError(null)
+      setIsCheckingSuggestion(false)
+      setGentleLensPromptOpen(true)
+      return
+    }
+
+    const serverSuggestsGentleLens = await shouldOfferGentleLensFromServer(trimmed)
+    if (serverSuggestsGentleLens) {
+      setSuggestionError(null)
+      setIsCheckingSuggestion(false)
+      setGentleLensPromptOpen(true)
+      return
+    }
+
+    if (trimmed.length < PERSONA_SUGGESTION_MIN_CHARS) {
+      setSuggestionError('Write a little more so vent.ai has enough to work with.')
+      setPersonaSuggestion(null)
+      setIsCheckingSuggestion(false)
+      return
+    }
+
+    const suggestion = routePersona(trimmed)
+    setSuggestionError(null)
+    setPersonaSuggestion(suggestion.confidence >= 0.4 ? suggestion : null)
+    setIsCheckingSuggestion(false)
+  }
+
+  function useSuggestedPersonality() {
+    if (!personaSuggestion) return
+
+    const personality = personaSuggestion.suggestedPersona
+
     setSelectedPersonality(personality)
     setActivePersonality(personality)
-    setAcceptedSuggestedPersona(personality)
     setDismissedSuggestionKey(suggestionKey(currentVentText, personaSuggestion))
-    setStage('writing')
+    submitWithPersonality(personality, personality)
   }
 
-  function keepCurrentChoice() {
-    setAcceptedSuggestedPersona(null)
-    setDismissedSuggestionKey(suggestionKey(currentVentText, personaSuggestion))
-  }
-
-  function submitWithPersonality(personality: PersonalityKey) {
+  function submitWithPersonality(personality: PersonalityKey, acceptedSuggestion: PersonalityKey | null = null) {
     const trimmed = currentVentText.trim()
     const now = Date.now()
 
@@ -154,8 +212,8 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
     setStage('writing')
     setCurrentVent(trimmed)
     setSubmittedText(trimmed)
-    setSubmittedAcceptedSuggestedPersona(acceptedSuggestedPersona === personality ? acceptedSuggestedPersona : null)
-    setAcceptedSuggestedPersona(null)
+    setSubmittedAcceptedSuggestedPersona(acceptedSuggestion)
+    setSuggestionError(null)
     addSessionMessage({
       role: 'user',
       content: trimmed,
@@ -168,6 +226,12 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
   function submit() {
     const trimmed = currentVentText.trim()
 
+    if (!selectedPersonality) {
+      setError('Choose a voice first.')
+      setStage('selecting')
+      return
+    }
+
     if (shouldOfferGentleLens(trimmed, activePersonality)) {
       setError(null)
       setGentleLensPromptOpen(true)
@@ -179,7 +243,6 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
 
   function chooseGentleLens(personality: GentlePersona) {
     setGentleLensPromptOpen(false)
-    setAcceptedSuggestedPersona(null)
     submitWithPersonality(personality)
   }
 
@@ -226,10 +289,11 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
           <PersonaSuggestionInput
             value={currentVentText}
             suggestion={visibleSuggestion}
-            currentPersonality={activePersonality}
-            onChange={setCurrentVentText}
+            error={suggestionError}
+            isChecking={isCheckingSuggestion}
+            onChange={changeSuggestionText}
+            onRequestSuggestion={requestPersonaSuggestion}
             onUseSuggested={useSuggestedPersonality}
-            onKeepChoice={keepCurrentChoice}
           />
         </div>
       ) : (
@@ -237,8 +301,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
           <div className="relative z-10 grid min-h-0 flex-1 gap-5 lg:grid-cols-2 lg:items-stretch">
             <section className="flex min-h-0 flex-col">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-sm text-muted">{submittedText ? 'Write another thought when you are ready.' : 'Write what is here.'}</p>
-                {submittedText ? <p className="hidden text-xs text-muted sm:block">The current reflection stays on the right.</p> : null}
+                <p className="text-sm text-muted">Write what is here.</p>
               </div>
               <div className="min-h-0 flex-1">
                 <VentInput
@@ -255,11 +318,9 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
 
             <section className="relative flex min-h-[360px] flex-col lg:min-h-0">
               <div className="mb-3 flex min-h-5 items-center justify-between gap-3">
-                <p className="text-sm text-muted">{submittedText ? 'Reflection' : 'Waiting for your thought.'}</p>
+                <p className="text-sm text-muted">Waiting for your thought.</p>
                 {compressedContext ? (
                   <p className="hidden text-xs text-muted sm:block">Temporary session context active</p>
-                ) : submittedText ? (
-                  <p className="hidden text-xs text-muted sm:block">Switch lenses above.</p>
                 ) : null}
               </div>
               <ActiveCharacter
@@ -297,7 +358,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
 
       <GentleLensDialog
         open={gentleLensPromptOpen}
-        currentPersonality={activePersonality}
+        currentPersonality={selectedPersonality}
         onChoose={chooseGentleLens}
         onClose={() => setGentleLensPromptOpen(false)}
       />

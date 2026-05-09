@@ -10,7 +10,7 @@ type GentlePersona = Extract<PersonalityKey, 'cotton' | 'angel'>
 
 interface GentleLensDialogProps {
   open: boolean
-  currentPersonality: PersonalityKey
+  currentPersonality?: PersonalityKey | null
   onChoose: (personality: GentlePersona) => void
   onClose: () => void
 }
@@ -20,11 +20,11 @@ const gentleOptions: GentlePersona[] = ['cotton', 'angel']
 export function GentleLensDialog({ open, currentPersonality, onChoose, onClose }: GentleLensDialogProps) {
   if (!open) return null
 
-  const current = personalities[currentPersonality]
+  const current = currentPersonality ? personalities[currentPersonality] : null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/58 px-5 backdrop-blur-sm">
-      <div className="glass-panel relative w-full max-w-md rounded-[8px] border-[color-mix(in_srgb,var(--accent)_34%,transparent)] p-5 shadow-[0_0_64px_var(--glow)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/78 px-5">
+      <div className="relative w-full max-w-md rounded-[8px] border border-[color-mix(in_srgb,var(--accent)_34%,transparent)] bg-[#121417] p-5 shadow-[0_0_64px_var(--glow)]">
         <button
           type="button"
           onClick={onClose}
@@ -40,7 +40,10 @@ export function GentleLensDialog({ open, currentPersonality, onChoose, onClose }
             Would you like to switch for this response?
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted">
-            This seems like it may need more softness than {current.name}. You can choose Cotton or Angel before Vent replies.
+            {current
+              ? `This seems like it may need more softness than ${current.name}. `
+              : 'This seems like it may need a softer lens. '}
+            You can choose Cotton or Angel before vent.ai replies.
           </p>
         </div>
 
@@ -55,13 +58,14 @@ export function GentleLensDialog({ open, currentPersonality, onChoose, onClose }
                 variant="secondary"
                 size="lg"
                 onClick={() => onChoose(personalityKey)}
-                className="h-16 justify-start rounded-[8px] px-3"
+                className="h-16 justify-start rounded-[8px] px-3 text-[#101113] shadow-none transition-transform hover:-translate-y-0.5 hover:scale-[1.02] hover:brightness-110"
                 style={{
+                  backgroundColor: personality.accent,
                   borderColor: `color-mix(in srgb, ${personality.accent} 42%, transparent)`,
-                  boxShadow: `0 0 28px ${personality.glow}`,
+                  boxShadow: `0 0 30px ${personality.glow}`,
                 }}
               >
-                <span className="relative h-10 w-10 overflow-hidden rounded-full bg-[rgba(255,255,255,0.06)]">
+                <span className="relative h-10 w-10 overflow-hidden rounded-full bg-[rgba(255,255,255,0.22)]">
                   <Image
                     src={personalityAtmospheres[personality.key]}
                     alt=""

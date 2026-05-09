@@ -1,11 +1,13 @@
 'use client'
 
+import Image from 'next/image'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import type { CompressedContext } from '@/lib/ai/context-compressor'
 import type { PersonaRouteResult } from '@/lib/ai/persona-router'
 import { recordClientMetric } from '@/lib/client-metrics'
+import { personalityAtmospheres } from '@/lib/personality-assets'
 import { normalizePersonalityKey, personalities, type PersonalityKey } from '@/lib/personalities'
 import { cn } from '@/lib/utils'
 import { useVentStore } from '@/store/vent-store'
@@ -414,7 +416,16 @@ export function ResponsePanel({
                 {activeError ? <p className="text-sm text-[var(--accent)]">{activeError}</p> : null}
               </div>
             ) : (
-              <div className="flex min-h-[260px] flex-1 flex-col items-center justify-center text-center">
+              <div className="flex min-h-[260px] flex-1 flex-col items-center justify-center gap-5 text-center">
+                <div className="relative h-32 w-32 overflow-hidden rounded-full border border-[color-mix(in_srgb,var(--accent)_36%,transparent)] bg-[rgba(255,255,255,0.04)] shadow-[0_0_42px_var(--glow)]">
+                  <Image
+                    src={personalityAtmospheres[activePersonality]}
+                    alt=""
+                    fill
+                    className="object-cover object-top opacity-90"
+                    sizes="128px"
+                  />
+                </div>
                 {activeError ? <p className="text-sm text-[var(--accent)]">{activeError}</p> : null}
                 <Button
                   type="button"
@@ -426,7 +437,7 @@ export function ResponsePanel({
                     generateResponse(activePersonality)
                   }}
                 >
-                  Hear from {active.name}
+                  Vent again
                 </Button>
               </div>
             )}

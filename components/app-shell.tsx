@@ -10,7 +10,7 @@ import { PersonalityTheme } from '@/components/personality-theme'
 
 const navItems = [
   { href: '/', label: 'Home' },
-  { href: '/vent', label: 'Vent' },
+  { href: '/vent', label: 'vent.ai' },
 ]
 
 export function AppShell({ children }: { children: React.ReactNode }) {

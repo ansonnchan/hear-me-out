@@ -34,15 +34,25 @@ const personaProfiles: Record<PersonalityId, PersonaProfile> = {
     groups: [
       {
         weight: 5,
-        phrases: ['i just need to vent', 'need to vent', 'so overwhelmed', 'feel overwhelmed', 'burned out', 'burnt out'],
+        phrases: [
+          'i just need to vent',
+          'need to vent',
+          'so overwhelmed',
+          'feel overwhelmed',
+          'burned out',
+          'burnt out',
+          'i do not want advice',
+          'i don\'t want advice',
+          'i need comfort',
+        ],
       },
       {
         weight: 4,
-        phrases: ['sad', 'lonely', 'tired', 'exhausted', 'crying', 'heavy', 'hurt', 'drained', 'numb'],
+        phrases: ['sad', 'lonely', 'alone', 'tired', 'exhausted', 'crying', 'heavy', 'hurt', 'drained', 'numb', 'grief', 'grieving'],
       },
       {
         weight: 3,
-        phrases: ['comfort', 'listen', 'hold', 'soft', 'rough day', 'bad day', 'too much'],
+        phrases: ['comfort', 'listen', 'hold', 'soft', 'rough day', 'bad day', 'too much', 'be gentle', 'need kindness'],
       },
     ],
   },
@@ -52,15 +62,24 @@ const personaProfiles: Record<PersonalityId, PersonaProfile> = {
     groups: [
       {
         weight: 5,
-        phrases: ['what should i do', 'what do i do', 'should i', 'pros and cons', 'tradeoff', 'tradeoffs'],
+        phrases: [
+          'what should i do',
+          'what do i do',
+          'should i',
+          'pros and cons',
+          'tradeoff',
+          'tradeoffs',
+          'help me decide',
+          'i need clarity',
+        ],
       },
       {
         weight: 4,
-        phrases: ['decision', 'decide', 'confused', 'plan', 'planning', 'choice', 'options', 'next step'],
+        phrases: ['decision', 'decide', 'confused', 'plan', 'planning', 'choice', 'options', 'next step', 'strategy', 'prioritize'],
       },
       {
         weight: 3,
-        phrases: ['logic', 'rational', 'clarity', 'clear', 'figure out', 'stuck between', 'make sense'],
+        phrases: ['logic', 'rational', 'clarity', 'clear', 'figure out', 'stuck between', 'make sense', 'analyze', 'problem'],
       },
     ],
   },
@@ -70,15 +89,23 @@ const personaProfiles: Record<PersonalityId, PersonaProfile> = {
     groups: [
       {
         weight: 5,
-        phrases: ['can\'t stop thinking', 'cannot stop thinking', 'spiraling', 'overthinking', 'looping in my head'],
+        phrases: [
+          'can\'t stop thinking',
+          'cannot stop thinking',
+          'spiraling',
+          'overthinking',
+          'looping in my head',
+          'can\'t let it go',
+          'cannot let it go',
+        ],
       },
       {
         weight: 4,
-        phrases: ['let go', 'letting go', 'accept', 'acceptance', 'detach', 'detachment', 'perspective'],
+        phrases: ['let go', 'letting go', 'accept', 'acceptance', 'detach', 'detachment', 'perspective', 'peace', 'control'],
       },
       {
         weight: 3,
-        phrases: ['ruminating', 'stuck in my head', 'not in my control', 'out of my control', 'mind racing'],
+        phrases: ['ruminating', 'stuck in my head', 'not in my control', 'out of my control', 'mind racing', 'obsessing', 'quiet my mind'],
       },
     ],
   },
@@ -88,15 +115,15 @@ const personaProfiles: Record<PersonalityId, PersonaProfile> = {
     groups: [
       {
         weight: 5,
-        phrases: ['not enough', 'i am not enough', 'i\'m not enough', 'hate myself', 'feel worthless'],
+        phrases: ['not enough', 'i am not enough', 'i\'m not enough', 'hate myself', 'feel worthless', 'i am a failure', 'i\'m a failure'],
       },
       {
         weight: 4,
-        phrases: ['insecure', 'self doubt', 'self-doubt', 'confidence', 'reassurance', 'failure', 'ashamed'],
+        phrases: ['insecure', 'self doubt', 'self-doubt', 'confidence', 'reassurance', 'failure', 'ashamed', 'embarrassed'],
       },
       {
         weight: 3,
-        phrases: ['believe in me', 'encourage me', 'proud of me', 'unlovable', 'imposter', 'impostor'],
+        phrases: ['believe in me', 'encourage me', 'proud of me', 'unlovable', 'imposter', 'impostor', 'am i bad', 'need encouragement'],
       },
     ],
   },
@@ -106,15 +133,22 @@ const personaProfiles: Record<PersonalityId, PersonaProfile> = {
     groups: [
       {
         weight: 5,
-        phrases: ['procrastinating', 'procrastination', 'making excuses', 'need discipline', 'hold me accountable'],
+        phrases: [
+          'procrastinating',
+          'procrastination',
+          'making excuses',
+          'need discipline',
+          'hold me accountable',
+          'stop avoiding',
+        ],
       },
       {
         weight: 4,
-        phrases: ['lazy', 'avoidance', 'avoiding', 'productive', 'productivity', 'deadline', 'get it done'],
+        phrases: ['lazy', 'avoidance', 'avoiding', 'productive', 'productivity', 'deadline', 'get it done', 'scrolling', 'study'],
       },
       {
         weight: 3,
-        phrases: ['tough love', 'no excuses', 'motivate me', 'focus', 'habit', 'routine', 'wasting time'],
+        phrases: ['tough love', 'no excuses', 'motivate me', 'focus', 'habit', 'routine', 'wasting time', 'chores', 'workout'],
       },
     ],
   },
