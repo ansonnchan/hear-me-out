@@ -1,14 +1,16 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { ActiveCharacter } from '@/components/active-character'
 import { GentleLensDialog } from '@/components/gentle-lens-dialog'
+import { PersonaSuggestionInput } from '@/components/persona-suggestion-input'
 import { PersonalitySelector } from '@/components/personality-selector'
 import { ResponsePanel } from '@/components/response-panel'
 import { VentInput } from '@/components/vent-input'
-import { WhyPersonaPanel } from '@/components/why-persona-panel'
 import { routePersona, type PersonaRouteResult } from '@/lib/ai/persona-router'
 import { recordClientMetric } from '@/lib/client-metrics'
+import { personalityAtmospheres } from '@/lib/personality-assets'
 import { type PersonalityKey } from '@/lib/personalities'
 import { useVentStore } from '@/store/vent-store'
 
@@ -95,7 +97,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
   useEffect(() => {
     const trimmed = currentVentText.trim()
 
-    if (trimmed.length < PERSONA_SUGGESTION_MIN_CHARS) {
+    if (stage !== 'selecting' || submittedText || trimmed.length < PERSONA_SUGGESTION_MIN_CHARS) {
       return
     }
 
@@ -105,7 +107,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
     }, 450)
 
     return () => window.clearTimeout(timeout)
-  }, [currentVentText])
+  }, [currentVentText, stage, submittedText])
 
   function choosePersonality(personality: PersonalityKey) {
     recordClientMetric('personality_switch', { personality })
@@ -183,6 +185,8 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
 
   const currentSuggestionKey = suggestionKey(currentVentText, personaSuggestion)
   const visibleSuggestion =
+    stage === 'selecting' &&
+    !submittedText &&
     currentVentText.trim().length >= PERSONA_SUGGESTION_MIN_CHARS &&
     personaSuggestion &&
     currentSuggestionKey !== dismissedSuggestionKey
@@ -211,60 +215,25 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
       </div>
 
       {stage === 'selecting' ? (
-        <div className="glass-panel relative z-10 mx-auto w-full max-w-3xl rounded-[8px] p-6 text-center shadow-[0_24px_90px_rgba(0,0,0,0.34)] sm:p-8">
-          <div className="space-y-3">
+        <div className="relative z-10 mx-auto w-full max-w-3xl space-y-4">
+          <div className="glass-panel rounded-[8px] p-8 text-center shadow-[0_24px_90px_rgba(0,0,0,0.34)]">
             <p className="font-display text-3xl leading-10 text-foreground/88">
               Whose voice do you need to hear?
             </p>
-            <p className="text-sm text-muted">Same thought. Different lens.</p>
+            <p className="mt-4 text-sm text-muted">Same thought. Different lens.</p>
           </div>
 
-          <div className="mx-auto mt-7 max-w-2xl rounded-[8px] border border-[rgba(245,158,11,0.34)] bg-[rgba(245,158,11,0.055)] p-4 text-left shadow-[0_0_42px_rgba(245,158,11,0.08)]">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-[rgba(245,158,11,0.42)] px-2 py-0.5 text-xs text-[#FBBF24]">
-                New
-              </span>
-              <p className="text-sm text-foreground/78">
-                Try our new feature: Vent can suggest a lens from what you write.
-              </p>
-            </div>
-            <textarea
-              value={currentVentText}
-              onChange={(event) => setCurrentVentText(event.target.value)}
-              placeholder="Write a sentence about your mood or situation. You can keep it short."
-              className="h-28 w-full resize-none rounded-[8px] border border-[var(--color-border)] bg-[rgba(255,255,255,0.035)] px-4 py-3 text-base leading-7 text-foreground outline-none placeholder:text-foreground/28 focus:border-[#FBBF24] focus:shadow-[0_0_28px_rgba(245,158,11,0.12)]"
-            />
-            <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted">
-              <span>Manual choice still works above.</span>
-              <span>{currentVentText.length.toLocaleString()}</span>
-            </div>
-            {visibleSuggestion ? (
-              <WhyPersonaPanel
-                suggestion={visibleSuggestion}
-                currentPersonality={activePersonality}
-                onUseSuggested={useSuggestedPersonality}
-                onKeepChoice={keepCurrentChoice}
-                className="mt-4"
-              />
-            ) : (
-              <p className="mt-4 text-center text-sm text-muted">
-                Not sure who to choose? Start writing and Vent can suggest a lens.
-              </p>
-            )}
-          </div>
+          <PersonaSuggestionInput
+            value={currentVentText}
+            suggestion={visibleSuggestion}
+            currentPersonality={activePersonality}
+            onChange={setCurrentVentText}
+            onUseSuggested={useSuggestedPersonality}
+            onKeepChoice={keepCurrentChoice}
+          />
         </div>
       ) : (
         <>
-          {visibleSuggestion ? (
-            <WhyPersonaPanel
-              suggestion={visibleSuggestion}
-              currentPersonality={activePersonality}
-              onUseSuggested={useSuggestedPersonality}
-              onKeepChoice={keepCurrentChoice}
-              className="relative z-10 mx-auto mb-4 w-full max-w-3xl"
-            />
-          ) : null}
-
           <div className="relative z-10 grid min-h-0 flex-1 gap-5 lg:grid-cols-2 lg:items-stretch">
             <section className="flex min-h-0 flex-col">
               <div className="mb-3 flex items-center justify-between gap-3">
@@ -309,9 +278,15 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
                   />
                 ) : (
                   <div className="glass-panel flex h-full min-h-[320px] items-center justify-center rounded-[8px] p-8 text-center">
-                    <p className="max-w-sm font-display text-2xl leading-9 text-foreground/72">
-                      Your reflection will appear here.
-                    </p>
+                    <div className="relative h-44 w-44 overflow-hidden rounded-full border border-[color-mix(in_srgb,var(--accent)_36%,transparent)] bg-[rgba(255,255,255,0.04)] shadow-[0_0_54px_var(--glow)] sm:h-52 sm:w-52">
+                      <Image
+                        src={personalityAtmospheres[activePersonality]}
+                        alt=""
+                        fill
+                        className="object-cover object-top opacity-90"
+                        sizes="208px"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
