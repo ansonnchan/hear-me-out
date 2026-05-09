@@ -6,16 +6,19 @@ vent.ai is an ephemeral AI reflection app for writing what is on your mind and h
 
 ## Preview
 
-- Polished welcome page with a quiet path into the writing flow.
-- Large, distraction-free vent input on `/vent`.
-- Five response personalities: Cotton, Aristotle, Venerable Ming, Angel, and Auntie Zhang.
-- Optional first-prompt persona suggestion after the user presses Enter or clicks the suggestion button.
-- Safety-aware response routing that can soften the tone for intense moments.
-- Progressive in-memory context compression for longer anonymous sessions.
-- One vent can be viewed through multiple lenses without retyping.
-- Streaming responses through `/api/chat`.
-- In-memory response cache only. Refreshing or closing the tab loses everything.
-- Mock responses when `GROQ_API_KEY` is missing, so the app still runs locally.
+<p align="center">
+  <img src="assets/vent.ai_pic1.png" alt="pear-program homepage" width="800">
+  <br>
+vent.ai home page</em>
+</p>
+<br>
+<p align="center">
+  <img src="assets/vent.ai_pic2.png" alt="stuff" width="800">
+  <br>
+Angel in action :) 
+</em>
+</p>
+
 
 ## Tech Stack
 
