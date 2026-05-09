@@ -11,7 +11,7 @@ const personalityDescriptions: Record<PersonalityKey, string> = {
     'Cotton receives the first rush of feeling without trying to fix it. Best for late-night heaviness, tender overwhelm, and the moments when your words need somewhere soft to land.',
   aristotle:
     'Aristotle clears a little space around the problem. Best when a choice feels tangled and you want calm reasoning without being rushed toward an answer.',
-  ming:
+  'venerable-ming':
     'Venerable Ming lets the noise settle before speaking. Best for spiraling thoughts, overthinking, and moments that need distance more than urgency.',
   angel:
     'Angel stays close to the part of you that is still trying. Best for self-doubt, bruised confidence, and days when you need someone gentle in your corner.',
@@ -94,4 +94,3 @@ export function PersonalityIntroCard({ personalityKey }: PersonalityIntroCardPro
     </button>
   )
 }
-

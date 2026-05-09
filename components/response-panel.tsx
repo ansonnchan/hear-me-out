@@ -3,17 +3,28 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { personalities, type PersonalityKey } from '@/lib/personalities'
+import type { CompressedContext } from '@/lib/ai/context-compressor'
+import type { PersonaRouteResult } from '@/lib/ai/persona-router'
+import { normalizePersonalityKey, personalities, type PersonalityKey } from '@/lib/personalities'
 import { cn } from '@/lib/utils'
 import { useVentStore } from '@/store/vent-store'
 
 type StatusMap = Partial<Record<PersonalityKey, 'idle' | 'loading' | 'complete' | 'error'>>
 type ErrorMap = Partial<Record<PersonalityKey, string>>
 
+type ChatResponseMeta = {
+  requestedPersona?: PersonalityKey
+  finalPersona?: PersonalityKey
+  personaSuggestion?: PersonaRouteResult
+  safetyNote?: string
+  compressedContext?: CompressedContext
+  contextCompressed?: boolean
+}
+
 const cooldownMessages: Record<PersonalityKey, string> = {
   cotton: 'Take a breath. Try again in a moment.',
   aristotle: 'Pause for a moment. Clear thinking needs a little space.',
-  ming: 'Let the water settle. Try again in a moment.',
+  'venerable-ming': 'Let the water settle. Try again in a moment.',
   angel: 'Take a breath. I am still here.',
   'auntie-zhang': 'Slow down. One clean attempt at a time.',
 }
@@ -21,6 +32,8 @@ const cooldownMessages: Record<PersonalityKey, string> = {
 interface ResponsePanelProps {
   originalText: string
   autoGenerateKey?: number
+  acceptedSuggestedPersona?: PersonalityKey | null
+  onPersonaSuggestion?: (suggestion: PersonaRouteResult) => void
   onGeneratingChange?: (isGenerating: boolean) => void
   className?: string
 }
@@ -29,6 +42,86 @@ function messageForStatus(status: number) {
   if (status === 400) return 'Write something first. Even one sentence.'
   if (status === 429) return 'Take a breath. Try again in a moment.'
   return 'Something went quiet. Try again in a moment.'
+}
+
+function parseCompressedContext(value: unknown): CompressedContext | undefined {
+  if (!value || typeof value !== 'object') return undefined
+
+  const candidate = value as Partial<CompressedContext>
+  const summary = typeof candidate.summary === 'string' ? candidate.summary : ''
+  const lastCompressedMessageIndex =
+    typeof candidate.lastCompressedMessageIndex === 'number' && Number.isSafeInteger(candidate.lastCompressedMessageIndex)
+      ? candidate.lastCompressedMessageIndex
+      : -1
+  const updatedAt = typeof candidate.updatedAt === 'number' && Number.isFinite(candidate.updatedAt) ? candidate.updatedAt : Date.now()
+
+  if (!summary || lastCompressedMessageIndex < 0) return undefined
+
+  return {
+    summary,
+    lastCompressedMessageIndex,
+    updatedAt,
+  }
+}
+
+function parsePersonaSuggestion(value: unknown): PersonaRouteResult | undefined {
+  if (!value || typeof value !== 'object') return undefined
+
+  const candidate = value as Partial<PersonaRouteResult>
+  const suggestedPersona = normalizePersonalityKey(candidate.suggestedPersona)
+
+  if (!suggestedPersona || typeof candidate.reason !== 'string' || typeof candidate.confidence !== 'number') {
+    return undefined
+  }
+
+  return {
+    suggestedPersona,
+    confidence: candidate.confidence,
+    reason: candidate.reason,
+    alternatives: Array.isArray(candidate.alternatives)
+      ? candidate.alternatives.flatMap((alternative) => {
+          if (!alternative || typeof alternative !== 'object') return []
+
+          const parsed = alternative as PersonaRouteResult['alternatives'][number]
+          const persona = normalizePersonalityKey(parsed.persona)
+
+          if (!persona || typeof parsed.score !== 'number' || typeof parsed.reason !== 'string') return []
+
+          return [
+            {
+              persona,
+              score: parsed.score,
+              reason: parsed.reason,
+            },
+          ]
+        })
+      : [],
+  }
+}
+
+function readChatMeta(response: Response): ChatResponseMeta {
+  const raw = response.headers.get('x-vent-meta')
+  if (!raw) return {}
+
+  try {
+    const parsed = JSON.parse(decodeURIComponent(raw)) as Record<string, unknown>
+    const requestedPersona = normalizePersonalityKey(parsed.requestedPersona)
+    const finalPersona = normalizePersonalityKey(parsed.finalPersona)
+    const safetyNote = typeof parsed.safetyNote === 'string' ? parsed.safetyNote : undefined
+    const compressedContext = parseCompressedContext(parsed.compressedContext)
+    const personaSuggestion = parsePersonaSuggestion(parsed.personaSuggestion)
+
+    return {
+      requestedPersona: requestedPersona ?? undefined,
+      finalPersona: finalPersona ?? undefined,
+      personaSuggestion,
+      safetyNote,
+      compressedContext,
+      contextCompressed: parsed.contextCompressed === true,
+    }
+  } catch {
+    return {}
+  }
 }
 
 function ThinkingDots() {
@@ -59,13 +152,21 @@ function ThinkingDots() {
 export function ResponsePanel({
   originalText,
   autoGenerateKey = 0,
+  acceptedSuggestedPersona,
+  onPersonaSuggestion,
   onGeneratingChange,
   className,
 }: ResponsePanelProps) {
   const activePersonality = useVentStore((state) => state.activePersonality)
   const responses = useVentStore((state) => state.responses)
+  const sessionMessages = useVentStore((state) => state.sessionMessages)
+  const compressedContext = useVentStore((state) => state.compressedContext)
+  const safetyNote = useVentStore((state) => state.safetyNote)
   const setActivePersonality = useVentStore((state) => state.setActivePersonality)
   const setStoreResponse = useVentStore((state) => state.setResponse)
+  const addSessionMessage = useVentStore((state) => state.addSessionMessage)
+  const applyCompressedContext = useVentStore((state) => state.applyCompressedContext)
+  const setSafetyNote = useVentStore((state) => state.setSafetyNote)
   const [statuses, setStatuses] = useState<StatusMap>({})
   const [errors, setErrors] = useState<ErrorMap>({})
   const lastAutoGenerateKey = useRef(0)
@@ -97,9 +198,13 @@ export function ResponsePanel({
       lastGeneratedAt.current = now
       setActivePersonality(personality)
       setStoreResponse(personality, '')
+      setSafetyNote(null)
       setErrors((current) => ({ ...current, [personality]: undefined }))
       setStatuses((current) => ({ ...current, [personality]: 'loading' }))
       onGeneratingChange?.(true)
+
+      let responsePersonality = personality
+      const requestStartedAt = performance.now()
 
       try {
         const response = await fetch('/api/chat', {
@@ -110,6 +215,10 @@ export function ResponsePanel({
           body: JSON.stringify({
             message: trimmed,
             personality,
+            messages: sessionMessages,
+            compressedContext,
+            acceptedSuggestedPersona: Boolean(acceptedSuggestedPersona && acceptedSuggestedPersona === personality),
+            suggestedPersona: acceptedSuggestedPersona ?? undefined,
           }),
         })
 
@@ -122,41 +231,96 @@ export function ResponsePanel({
           return
         }
 
+        const meta = readChatMeta(response)
+        responsePersonality = meta.finalPersona ?? personality
+
+        if (meta.personaSuggestion) {
+          onPersonaSuggestion?.(meta.personaSuggestion)
+        }
+
+        if (meta.contextCompressed && meta.compressedContext) {
+          applyCompressedContext(meta.compressedContext)
+        }
+
+        setSafetyNote(meta.safetyNote ?? null)
+
+        if (responsePersonality !== personality) {
+          setActivePersonality(responsePersonality)
+          setStoreResponse(responsePersonality, '')
+          setErrors((current) => ({
+            ...current,
+            [personality]: undefined,
+            [responsePersonality]: undefined,
+          }))
+          setStatuses((current) => ({
+            ...current,
+            [personality]: 'idle',
+            [responsePersonality]: 'loading',
+          }))
+        }
+
         if (!response.body) {
           setErrors((current) => ({
             ...current,
-            [personality]: 'Something went quiet. Try again in a moment.',
+            [responsePersonality]: 'Something went quiet. Try again in a moment.',
           }))
-          setStatuses((current) => ({ ...current, [personality]: 'error' }))
+          setStatuses((current) => ({ ...current, [responsePersonality]: 'error' }))
           return
         }
 
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
         let content = ''
+        let sawFirstToken = false
 
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
 
+          if (!sawFirstToken) {
+            sawFirstToken = true
+            console.info('vent.ai client_ttft_ms', Math.round(performance.now() - requestStartedAt))
+          }
+
           content += decoder.decode(value, { stream: true })
-          setStoreResponse(personality, content)
+          setStoreResponse(responsePersonality, content)
         }
 
         content += decoder.decode()
-        setStoreResponse(personality, content)
-        setStatuses((current) => ({ ...current, [personality]: 'complete' }))
+        setStoreResponse(responsePersonality, content)
+        setStatuses((current) => ({ ...current, [responsePersonality]: 'complete' }))
+
+        if (content.trim()) {
+          addSessionMessage({
+            role: 'assistant',
+            content: content.trim(),
+            personality: responsePersonality,
+          })
+        }
       } catch {
         setErrors((current) => ({
           ...current,
-          [personality]: 'Lost the connection. Check your network and try again.',
+          [responsePersonality]: 'Lost the connection. Check your network and try again.',
         }))
-        setStatuses((current) => ({ ...current, [personality]: 'error' }))
+        setStatuses((current) => ({ ...current, [responsePersonality]: 'error' }))
       } finally {
         onGeneratingChange?.(false)
       }
     },
-    [onGeneratingChange, originalText, setActivePersonality, setStoreResponse, statuses],
+    [
+      acceptedSuggestedPersona,
+      addSessionMessage,
+      applyCompressedContext,
+      compressedContext,
+      onGeneratingChange,
+      onPersonaSuggestion,
+      originalText,
+      sessionMessages,
+      setActivePersonality,
+      setSafetyNote,
+      setStoreResponse,
+      statuses,
+    ],
   )
 
   useEffect(() => {
@@ -197,13 +361,17 @@ export function ResponsePanel({
             transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
             className="relative flex h-full min-h-[220px] flex-col"
           >
+            {safetyNote ? (
+              <div className="mb-4 inline-flex w-fit rounded-full border border-[var(--color-border)] bg-[rgba(255,255,255,0.045)] px-3 py-1 text-xs text-muted">
+                {safetyNote}
+              </div>
+            ) : null}
+
             {hasResponse || isLoading ? (
               <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
                 <div className="whitespace-pre-wrap text-lg leading-8 text-foreground/88">
                   {activeResponse}
-                  {isLoading ? (
-                    <ThinkingDots />
-                  ) : null}
+                  {isLoading ? <ThinkingDots /> : null}
                 </div>
 
                 {activeError ? <p className="text-sm text-[var(--accent)]">{activeError}</p> : null}

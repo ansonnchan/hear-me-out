@@ -14,7 +14,7 @@ import type { PersonalityKey } from '@/lib/personalities'
 export const personalityImages: Record<PersonalityKey, StaticImageData> = {
   cotton,
   aristotle,
-  ming,
+  'venerable-ming': ming,
   angel,
   'auntie-zhang': auntieZhang,
 }
@@ -22,8 +22,7 @@ export const personalityImages: Record<PersonalityKey, StaticImageData> = {
 export const personalityAtmospheres: Record<PersonalityKey, StaticImageData> = {
   cotton: cottonTransparent,
   aristotle: aristotleTransparent,
-  ming: mingTransparent,
+  'venerable-ming': mingTransparent,
   angel: angelTransparent,
   'auntie-zhang': auntieZhangTransparent,
 }
-
