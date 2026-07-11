@@ -1,6 +1,6 @@
 import { createHash } from 'crypto'
 import { Ratelimit } from '@upstash/ratelimit'
-import { Redis } from '@upstash/redis'
+import { getRedis } from '@/lib/redis/client'
 
 const CHAT_RATE_LIMIT = 10
 const CHAT_RATE_LIMIT_WINDOW = '1 m'
@@ -22,9 +22,11 @@ function hasUpstashEnv() {
 
 function getChatRatelimit() {
   if (!hasUpstashEnv()) return null
+  const redis = getRedis()
+  if (!redis) return null
 
   chatRatelimit ??= new Ratelimit({
-    redis: Redis.fromEnv(),
+    redis,
     limiter: Ratelimit.slidingWindow(CHAT_RATE_LIMIT, CHAT_RATE_LIMIT_WINDOW),
     analytics: true,
     prefix: 'vent-ai:chat',
