@@ -52,6 +52,21 @@ redis.call('EXPIRE', KEYS[1], ARGV[2])
 return 1
 `
 
+const PUBLISH_EVENT_SCRIPT = `
+if redis.call('HGET', KEYS[1], 'status') ~= 'running' then return false end
+local eventId = redis.call('XADD', KEYS[2], 'MAXLEN', '~', ARGV[1], '*', 'type', ARGV[2], 'data', ARGV[3])
+redis.call('HSET', KEYS[1], 'updatedAt', ARGV[4])
+redis.call('EXPIRE', KEYS[1], ARGV[5])
+redis.call('EXPIRE', KEYS[2], ARGV[5])
+return eventId
+`
+
+const ACKNOWLEDGE_SCRIPT = `
+local acknowledged = redis.call('XACK', KEYS[1], ARGV[1], ARGV[2])
+redis.call('XDEL', KEYS[1], ARGV[2])
+return acknowledged
+`
+
 const TERMINAL_EVENT_SCRIPT = `
 local current = redis.call('HGET', KEYS[1], 'status')
 if current ~= ARGV[1] then return 0 end
@@ -229,10 +244,7 @@ export class RedisInferenceJobStore implements InferenceJobStore {
   }
 
   async acknowledge(queueEntryId: string) {
-    const pipeline = this.redis.pipeline()
-    pipeline.xack(QUEUE_KEY, CONSUMER_GROUP, queueEntryId)
-    pipeline.xdel(QUEUE_KEY, queueEntryId)
-    await pipeline.exec()
+    await this.redis.eval(ACKNOWLEDGE_SCRIPT, [QUEUE_KEY], [CONSUMER_GROUP, queueEntryId])
   }
 
   async getJob(jobId: string) {
@@ -256,15 +268,14 @@ export class RedisInferenceJobStore implements InferenceJobStore {
   }
 
   async publish(jobId: string, event: PublishableInferenceEvent) {
-    const pipeline = this.redis.pipeline()
-    pipeline.xadd(eventKey(jobId), '*', { type: event.type, data: event.data }, {
-      trim: { type: 'MAXLEN', threshold: MAX_EVENT_ENTRIES, comparison: '~' },
-    })
-    pipeline.hset(jobKey(jobId), { updatedAt: Date.now() })
-    pipeline.expire(eventKey(jobId), INFERENCE_JOB_TTL_SECONDS)
-    pipeline.expire(jobKey(jobId), INFERENCE_JOB_TTL_SECONDS)
-    const [eventId] = await pipeline.exec<[string, number, number, number]>()
-    return eventId
+    const eventId = await this.redis.eval(PUBLISH_EVENT_SCRIPT, [jobKey(jobId), eventKey(jobId)], [
+      String(MAX_EVENT_ENTRIES),
+      event.type,
+      JSON.stringify(event.data),
+      String(Date.now()),
+      String(INFERENCE_JOB_TTL_SECONDS),
+    ])
+    return typeof eventId === 'string' ? eventId : null
   }
 
   async complete(jobId: string) {

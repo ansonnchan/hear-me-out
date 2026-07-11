@@ -4,6 +4,7 @@ import { mockResponse, streamMockResponse } from '@/lib/chat/mock-response'
 import { INFERENCE_LIMITS, type InferenceLimits } from '@/lib/inference/config'
 import type { InferenceJobStore } from '@/lib/inference/job-store'
 import type { ClaimedInferenceJob, InferenceResponseMeta } from '@/lib/inference/types'
+import { TokenEventBuffer } from '@/worker/token-event-buffer'
 
 export type WorkerLogger = Pick<Console, 'info' | 'error'>
 
@@ -55,6 +56,7 @@ export async function processInferenceJob(params: {
       logger.error('[vent.ai] worker.cancellation_check_failed', { jobId: job.id, requestId: job.requestId, error })
     })
   }, 250)
+  let tokenBuffer: TokenEventBuffer | null = null
 
   try {
     logger.info('[vent.ai] worker.job_started', {
@@ -85,15 +87,17 @@ export async function processInferenceJob(params: {
     const completion = provider
       ? await provider.stream(prepared.completionRequest, controller.signal)
       : streamMockResponse(mockResponse(prepared.finalPersona, prepared.safetyRoute.level))
+    tokenBuffer = new TokenEventBuffer(async (text) => {
+      await store.publish(job.id, { id: '', type: 'token', data: { text } })
+    })
 
     for await (const text of completion) {
-      const status = await store.getStatus(job.id)
-      if (controller.signal.aborted || status === 'cancelled' || status === 'timed_out') {
-        controller.abort()
+      if (controller.signal.aborted) {
         throw controller.signal.reason ?? new DOMException('Inference stopped.', 'AbortError')
       }
-      await store.publish(job.id, { id: '', type: 'token', data: { text } })
+      await tokenBuffer.append(text)
     }
+    await tokenBuffer.flush()
 
     if (executionDeadlineExceeded) {
       await store.timeout(job.id, 'running', 'execution_deadline')
@@ -114,6 +118,17 @@ export async function processInferenceJob(params: {
     }
   } catch (error) {
     const status = await store.getStatus(job.id)
+    if (status === 'running') {
+      try {
+        await tokenBuffer?.flush()
+      } catch (flushError) {
+        logger.error('[vent.ai] worker.token_flush_failed', {
+          jobId: job.id,
+          requestId: job.requestId,
+          error: flushError,
+        })
+      }
+    }
     if (executionDeadlineExceeded && status === 'running') {
       await store.timeout(job.id, 'running', 'execution_deadline')
       logger.error('[vent.ai] worker.job_timed_out', {

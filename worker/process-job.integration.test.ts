@@ -21,7 +21,7 @@ const logger = { info() {}, error() {} }
 
 class StreamingProvider implements AIProvider {
   readonly name = 'fake'
-  constructor(private readonly tokens = ['First', ' response']) {}
+  constructor(private readonly tokens = ['First', ' ', 'response']) {}
 
   async complete() {
     return JSON.stringify({ level: 'normal', internalReason: 'No concern.', saferPersona: null })

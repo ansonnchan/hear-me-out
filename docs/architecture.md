@@ -83,6 +83,8 @@ Lifecycle transitions and their terminal events are atomic. Cancellation immedia
 
 Workers reclaim pending entries with `XAUTOCLAIM` only after a lease longer than the maximum execution duration. A reclaimed job keeps its correlation and idempotency identifiers and emits `reset` before restarting token delivery. Jobs receive at most two execution attempts; this is an at-least-once recovery model, not exactly-once processing.
 
+The worker publishes the first provider fragment immediately, then coalesces subsequent tiny fragments using a 40-millisecond arrival window or 96-character threshold and flushes the remainder before terminal handling. Each event append, activity timestamp, and TTL renewal executes atomically, while a single cancellation watcher avoids one Redis read per provider fragment.
+
 ## Dependency rules
 
 - API routes and the worker depend on `InferenceJobStore`; only the Redis adapter issues Redis commands.

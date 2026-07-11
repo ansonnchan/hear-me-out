@@ -20,7 +20,7 @@ export interface InferenceJobStore {
   getJob(jobId: string): Promise<InferenceJob | null>
   getStatus(jobId: string): Promise<InferenceJobStatus | null>
   markRunning(jobId: string): Promise<number | null>
-  publish(jobId: string, event: PublishableInferenceEvent): Promise<string>
+  publish(jobId: string, event: PublishableInferenceEvent): Promise<string | null>
   complete(jobId: string): Promise<boolean>
   fail(jobId: string, message: string): Promise<boolean>
   timeout(jobId: string, expected: 'queued' | 'running', reason: InferenceTimeoutReason): Promise<boolean>

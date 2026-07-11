@@ -69,7 +69,8 @@ export class InMemoryInferenceJobStore implements InferenceJobStore {
 
   async publish(jobId: string, event: PublishableInferenceEvent) {
     const job = this.jobs.get(jobId)
-    if (job) job.updatedAt = Date.now()
+    if (!job || job.status !== 'running') return null
+    job.updatedAt = Date.now()
     return this.append(jobId, event.type, event.data)
   }
 

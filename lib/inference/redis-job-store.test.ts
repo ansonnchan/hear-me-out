@@ -127,7 +127,6 @@ describe('Redis inference job store', () => {
   })
 
   it('fails and cleans up a stale job after the bounded attempt count', async () => {
-    const pipeline = pipelineDouble()
     const redis = {
       xreadgroup: vi.fn().mockResolvedValue(null),
       xautoclaim: vi.fn().mockResolvedValue([
@@ -145,40 +144,37 @@ describe('Redis inference job store', () => {
         updatedAt: 20,
       }),
       eval: vi.fn().mockResolvedValue(1),
-      pipeline: vi.fn(() => pipeline),
     }
     const store = new RedisInferenceJobStore(redis as unknown as Redis)
 
     await expect(store.claimNext('worker-3')).resolves.toBeNull()
-    expect(redis.eval).toHaveBeenCalledOnce()
-    expect(pipeline.xack).toHaveBeenCalledOnce()
-    expect(pipeline.xdel).toHaveBeenCalledOnce()
+    expect(redis.eval).toHaveBeenCalledTimes(2)
   })
 
   it('acknowledges and deletes an orphaned queue entry whose job expired', async () => {
-    const pipeline = pipelineDouble()
     const redis = {
       xreadgroup: vi.fn().mockResolvedValue([
         ['queue', [['40-0', ['jobId', 'missing-job', 'requestId', 'request-1']]]],
       ]),
       hgetall: vi.fn().mockResolvedValue(null),
-      pipeline: vi.fn(() => pipeline),
+      eval: vi.fn().mockResolvedValue(1),
     }
     const store = new RedisInferenceJobStore(redis as unknown as Redis)
 
     await expect(store.claimNext('worker-1')).resolves.toBeNull()
-    expect(pipeline.xack).toHaveBeenCalledOnce()
-    expect(pipeline.xdel).toHaveBeenCalledOnce()
+    expect(redis.eval).toHaveBeenCalledOnce()
+  })
+
+  it('atomically publishes an event with activity and TTL renewal', async () => {
+    const evalCommand = vi.fn().mockResolvedValue('50-0')
+    const store = new RedisInferenceJobStore({ eval: evalCommand } as unknown as Redis)
+
+    await expect(store.publish('job-1', {
+      id: '',
+      type: 'token',
+      data: { text: 'combined token text' },
+    })).resolves.toBe('50-0')
+    expect(evalCommand).toHaveBeenCalledOnce()
+    expect(evalCommand.mock.calls[0][1]).toHaveLength(2)
   })
 })
-
-function pipelineDouble() {
-  const pipeline = {
-    xack: vi.fn(),
-    xdel: vi.fn(),
-    exec: vi.fn().mockResolvedValue([1, 1]),
-  }
-  pipeline.xack.mockReturnValue(pipeline)
-  pipeline.xdel.mockReturnValue(pipeline)
-  return pipeline
-}
