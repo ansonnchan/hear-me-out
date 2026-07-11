@@ -1,4 +1,4 @@
-import { AI_MODEL, groq } from '@/lib/ai'
+import type { AIProvider } from '@/lib/ai/provider'
 
 export type CompressedContext = {
   summary: string
@@ -46,7 +46,7 @@ export async function compressContext(params: {
   existingSummary?: string
   messagesToCompress: CompressibleMessage[]
   lastCompressedMessageIndex?: number
-}): Promise<CompressedContext> {
+}, provider: AIProvider | null): Promise<CompressedContext> {
   const lastCompressedMessageIndex =
     params.lastCompressedMessageIndex ?? Math.max(params.messagesToCompress.length - 1, 0)
 
@@ -58,7 +58,7 @@ export async function compressContext(params: {
     }
   }
 
-  if (!groq) {
+  if (!provider) {
     return {
       summary: localFallbackSummary(params.existingSummary, params.messagesToCompress),
       lastCompressedMessageIndex,
@@ -67,10 +67,9 @@ export async function compressContext(params: {
   }
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: AI_MODEL,
+    const summary = sanitizeSummary(await provider.complete({
       temperature: 0.2,
-      max_tokens: 180,
+      maxTokens: 180,
       messages: [
         {
           role: 'system',
@@ -89,9 +88,7 @@ Use neutral language.`,
             .join('\n')}`,
         },
       ],
-    })
-
-    const summary = sanitizeSummary(completion.choices[0]?.message?.content ?? '')
+    }))
 
     return {
       summary: summary || localFallbackSummary(params.existingSummary, params.messagesToCompress),

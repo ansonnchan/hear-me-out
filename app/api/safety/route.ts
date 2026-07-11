@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { routeSafety } from '@/lib/ai/safety-router'
+import { getAIProvider } from '@/lib/ai/provider-factory'
 import type { PersonalityId } from '@/lib/ai/persona-router'
 import { normalizePersonalityKey } from '@/lib/personalities'
 
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
     const route = await routeSafety({
       message,
       selectedPersona: selectedPersona as PersonalityId,
-    })
+    }, getAIProvider())
 
     return NextResponse.json({
       shouldOfferGentleLens: route.level !== 'normal',

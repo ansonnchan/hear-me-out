@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import { AI_MODEL, groq } from '@/lib/ai'
 import { compressContext, type CompressedContext } from '@/lib/ai/context-compressor'
 import { routePersona, type PersonaRouteResult, type PersonalityId } from '@/lib/ai/persona-router'
+import { getAIProvider } from '@/lib/ai/provider-factory'
+import type { AIProvider } from '@/lib/ai/provider'
 import { routeSafety, type SafetyRouteResult } from '@/lib/ai/safety-router'
 import { applyRateLimitHeaders, checkChatRateLimit } from '@/lib/rate-limit'
 import { getPersonalityPrompt, normalizePersonalityKey, personalities, type PersonalityKey } from '@/lib/personalities'
@@ -152,6 +153,7 @@ function encodeMetaHeader(meta: ChatResponseMeta) {
 async function maybeCompressContext(params: {
   sessionMessages: SessionMessage[]
   compressedContext?: CompressedContext
+  provider: AIProvider | null
 }) {
   if (params.sessionMessages.length <= RAW_MESSAGE_WINDOW) return undefined
 
@@ -167,7 +169,7 @@ async function maybeCompressContext(params: {
       content: message.content,
       personality: message.personality ? personalities[message.personality].name : undefined,
     })),
-  })
+  }, params.provider)
 }
 
 function buildContextBlock(compressedContext?: CompressedContext) {
@@ -238,6 +240,7 @@ Keep the response to one paragraph, about 4 to 6 sentences, and under ${RESPONSE
 export async function POST(request: Request) {
   const id = requestId()
   const requestStartedAt = performance.now()
+  const provider = getAIProvider()
   let rateLimit: RateLimitResult | null = null
 
   try {
@@ -282,7 +285,7 @@ export async function POST(request: Request) {
   const selectedPersona = acceptedSuggestedPersona ?? requestedPersona
   const isOpeningMessage = sessionMessages.filter((sessionMessage) => sessionMessage.role === 'user').length <= 1
   const personaSuggestion = isOpeningMessage ? routePersona(message) : undefined
-  const nextCompressedContext = await maybeCompressContext({ sessionMessages, compressedContext })
+  const nextCompressedContext = await maybeCompressContext({ sessionMessages, compressedContext, provider })
   const contextForPrompt = nextCompressedContext ?? compressedContext
 
   let safetyRoute: SafetyRouteResult
@@ -291,7 +294,7 @@ export async function POST(request: Request) {
     safetyRoute = await routeSafety({
       message,
       selectedPersona: selectedPersona as PersonalityId,
-    })
+    }, provider)
   } catch (error) {
     console.error('[vent.ai] api.chat.safety_routing_failed', { requestId: id, error })
     safetyRoute = {
@@ -320,7 +323,7 @@ export async function POST(request: Request) {
     }),
   )
 
-  if (!groq) {
+  if (!provider) {
     headers.set('X-AI-Provider', 'mock')
     headers.set('Server-Timing', `vent_prep;dur=${Math.round(performance.now() - requestStartedAt)}`)
 
@@ -339,13 +342,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    headers.set('X-AI-Provider', 'groq')
+    headers.set('X-AI-Provider', provider.name)
 
-    const completion = await groq.chat.completions.create({
-      model: AI_MODEL,
-      stream: true,
+    const completion = await provider.stream({
       temperature: safetyRoute.level === 'normal' ? 0.72 : 0.58,
-      max_tokens: safetyRoute.level === 'urgent_safety' ? 220 : 280,
+      maxTokens: safetyRoute.level === 'urgent_safety' ? 220 : 280,
       messages: buildPromptMessages({
         message,
         finalPersona,
@@ -363,10 +364,7 @@ export async function POST(request: Request) {
         let firstTokenAt: number | null = null
 
         try {
-          for await (const chunk of completion) {
-            const delta = chunk.choices[0]?.delta?.content ?? ''
-            if (!delta) continue
-
+          for await (const delta of completion) {
             if (!firstTokenAt) {
               firstTokenAt = performance.now()
               console.info('vent.ai ttft_ms', Math.round(firstTokenAt - requestStartedAt))

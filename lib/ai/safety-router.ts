@@ -1,4 +1,4 @@
-import { AI_MODEL, groq } from '@/lib/ai'
+import type { AIProvider } from '@/lib/ai/provider'
 import type { PersonalityId } from '@/lib/ai/persona-router'
 
 export type SafetyLevel = 'normal' | 'elevated_distress' | 'urgent_safety'
@@ -159,18 +159,17 @@ function routeFromLevel(level: SafetyLevel, selectedPersona: PersonalityId, safe
 export async function routeSafety(params: {
   message: string
   selectedPersona: PersonalityId
-}): Promise<SafetyRouteResult> {
+}, provider: AIProvider | null): Promise<SafetyRouteResult> {
   const localRoute = localSafetyRoute(params.message, params.selectedPersona)
 
-  if (!groq) {
+  if (!provider) {
     return localRoute
   }
 
   try {
-    const completion = await groq.chat.completions.create({
-      model: AI_MODEL,
+    const content = await provider.complete({
       temperature: 0,
-      max_tokens: 120,
+      maxTokens: 120,
       messages: [
         {
           role: 'system',
@@ -194,7 +193,7 @@ Return:
       ],
     })
 
-    const classifierResult = parseClassifierResult(completion.choices[0]?.message?.content ?? '')
+    const classifierResult = parseClassifierResult(content)
     if (!classifierResult) return localRoute
 
     const saferPersona = classifierResult.saferPersona ?? chooseSaferPersona(params.message)
