@@ -52,9 +52,9 @@ vent.ai is anonymous and session-local:
 - Optional persona suggestion uses a free local heuristic in `lib/ai/persona-router.ts`.
 - Safety-aware response routing runs before generation. When Groq is configured, a small classifier checks every message before the main response; local heuristics remain as fallback and for the first-prompt helper.
 - Progressive context compression summarizes older turns into Zustand memory only, then trims older raw turns from the client session.
-- Groq remains the main AI provider for streaming responses and compression.
+- Groq remains the main AI provider behind a provider-neutral completion and streaming interface.
 - TTFT instrumentation stays lightweight through stream timing logs and `Server-Timing` preparation headers.
-- Redis/Upstash rate limiting can remain in front of `/api/chat` if added by deployment, but this repo does not require it.
+- Redis/Upstash rate limiting is enabled for `/api/chat` when its environment variables are configured.
 
 Architecture flow:
 
@@ -68,6 +68,8 @@ User vent
 ```
 
 All session state is kept in memory. Refreshing or closing the tab clears the current vent and responses.
+
+The backend separates HTTP transport, chat orchestration, the ephemeral conversation domain, and the Groq adapter. See [Architecture](docs/architecture.md) for the current dependency rules, request lifecycle, limitations, and deferred worker-queue scope.
 
 ## Getting Started
 
@@ -114,6 +116,7 @@ The Upstash variables are optional locally. Add them to enable Redis-backed rate
 npm run dev
 npm run lint
 npm run typecheck
+npm test
 npm run build
 ```
 
