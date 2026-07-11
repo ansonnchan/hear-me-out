@@ -1,70 +1,108 @@
 # Architecture
 
-vent.ai is an ephemeral reflection application. The browser owns the temporary conversation, while the server validates a bounded snapshot for each inference request. No vent text is persisted.
+vent.ai is an ephemeral reflection application. The browser owns the active conversation, while Redis holds only short-lived inference jobs and event streams when worker mode is configured. The application has no accounts or durable conversation archive.
 
-## Phase 1 boundaries
+## System boundaries
 
 ```text
 React UI + Zustand
-        |
-        | POST /api/chat
-        v
-Next.js route adapter --------> rate limiter
-        |
-        v
+   |              ^
+   | POST job     | SSE metadata and tokens
+   v              |
+Next.js API routes ----------------> rate limiter
+   |              ^
+   | enqueue      | replay events by stream ID
+   v              |
+Redis job hash + queue stream + per-job event stream
+   |              ^
+   | claim        | publish
+   v              |
+inference worker process
+   |
+   v
 chat application service
    |         |          |
    v         v          v
 conversation domain   safety/persona policies   prompt builder
         \                 |                    /
-         \                v                   /
-          +---------- AIProvider <------------+
+         +----------- AIProvider -------------+
                          |
                          v
                     Groq adapter
 ```
 
-The route adapter owns HTTP parsing, rate-limit headers, response metadata, and bridging provider output into a `ReadableStream`. It does not decide how history is bounded or how a prompt is assembled.
+The API owns HTTP validation, rate limiting, idempotent job creation, SSE delivery, and cancellation requests. It does not execute chat generation when Redis is configured.
 
-The chat application service coordinates one inference use case. It decides when older turns need compression, applies persona and safety policy, and produces a provider-neutral completion request.
+The separately runnable worker claims jobs through a Redis Stream consumer group. It invokes the same application service introduced in Phase 1, publishes response metadata before token events, and records a terminal job result before acknowledging the queue entry.
 
-The conversation domain defines the temporary session snapshot: ordered messages and optional compressed context. It validates and bounds client-provided state before application logic uses it.
+The application service owns compression policy, safety and persona routing, and provider-neutral prompt preparation. `AIProvider` keeps Groq-specific request, stream, and cancellation behavior inside the adapter.
 
-`AIProvider` is the dependency boundary for text completion and streaming. Groq-specific request and response shapes stay inside the Groq adapter. Safety routing, compression, and chat generation depend on the interface rather than the SDK.
-
-## Request lifecycle
+## Worker request lifecycle
 
 ```text
-Browser submits message and bounded session snapshot
-  -> route applies optional Redis rate limit
-  -> command parser validates message, persona, and conversation
-  -> application service optionally compresses older turns
-  -> application service applies safety and persona routing
-  -> prompt builder creates a provider-neutral request
-  -> Groq adapter starts a streaming completion
-  -> route forwards text chunks without buffering the full response
-  -> browser incrementally updates Zustand
-  -> completed assistant turn is added to the in-memory session
+Browser POST /api/chat with Idempotency-Key
+  -> API validates and rate-limits the bounded conversation snapshot
+  -> atomic Redis script creates a queued job or returns the existing job
+  <- 202 { jobId, requestId, eventsUrl }
+
+Browser GET eventsUrl using EventSource
+  -> SSE route reads events after Last-Event-ID
+  -> worker claims queued job and marks it running
+  -> application service compresses context and applies safety/persona routing
+  -> worker publishes metadata, then ordered token events
+  -> SSE route forwards replayable events to the browser
+  -> worker atomically marks completed or failed and acknowledges the queue entry
+  -> browser adds the completed assistant turn to Zustand
 ```
 
-When `GROQ_API_KEY` is absent, the same route and metadata contract return a local streamed response. This keeps local UI development independent of provider credentials.
+Native `EventSource` reconnects automatically and sends its last received event ID. The SSE route uses that ID as an exclusive Redis Stream cursor, preventing already-rendered tokens from being replayed.
+
+When Redis is not configured, `/api/chat` retains the Phase 1 direct streaming path. When Groq is also absent, that path streams a local mock response. This fallback is intended for credential-free UI development, not as the worker deployment mode.
+
+## Redis data model
+
+- `vent-ai:inference:queue`: global queue stream containing job and correlation IDs, not vent text. It is capped to a bounded length.
+- `vent-ai:inference:job:{jobId}`: job status, request ID, and validated command payload.
+- `vent-ai:inference:job:{jobId}:events`: ordered metadata, token, and terminal events.
+- `vent-ai:inference:idempotency:{key}`: maps a browser attempt to its existing job.
+
+Job hashes, event streams, and idempotency keys use a rolling 15-minute TTL. Queue entries contain no conversation payload. There is no durable message or response history.
+
+## Job lifecycle
+
+```text
+queued -> running -> completed
+                  -> failed
+queued  -> cancelled
+running -> cancelled
+```
+
+Lifecycle transitions and their terminal events are atomic. Cancellation immediately creates a replayable `cancelled` event. The worker watches cancellation while preparing and streaming, then aborts the provider stream where supported.
 
 ## Dependency rules
 
-- API routes may depend on application services and infrastructure adapters.
-- Application services may depend on domain policy and provider interfaces, not Next.js or the Groq SDK.
-- Domain modules do not depend on HTTP, Redis, React, Zustand, or provider SDKs.
-- Provider-specific code implements `AIProvider`; it does not leak SDK response types into the application layer.
-- Zustand owns presentation state. Shared conversation types come from the domain module, but domain code never imports the store.
+- API routes and the worker depend on `InferenceJobStore`; only the Redis adapter issues Redis commands.
+- The worker depends on the chat application service and `AIProvider`, not Next.js routes.
+- Application services may depend on domain policies and provider interfaces, not HTTP, Redis, React, or provider SDKs.
+- Domain modules remain independent of infrastructure and presentation state.
+- Zustand owns the active presentation session; the domain module supplies its shared conversation types.
+
+## Local and deployment constraints
+
+- Worker mode requires Upstash Redis credentials in both the API and worker environments.
+- `npm run dev` and `npm run worker` must run as separate processes.
+- Upstash uses an HTTP client and does not support a permanently blocking stream read, so the worker and SSE route use bounded polling.
+- If Redis is configured but no worker is running, jobs remain queued until their short TTL expires.
+- A worker process must run on a host that supports a long-running Node.js process; a serverless Next.js deployment alone is insufficient.
 
 ## Current limitations
 
-- The browser remains the source of truth for anonymous conversation state. Refreshing or closing the tab clears it.
-- Inference still executes within the `/api/chat` request lifecycle.
-- Provider cancellation is not yet propagated when a browser disconnects.
-- Compression and safety classification can add work before the first streamed token.
-- Redis is used only for optional rate limiting.
+- Jobs claimed by a worker that crashes remain pending in the Redis consumer group; stale pending-job recovery is deferred.
+- Cancellation is checked through polling, so provider abortion is prompt but not instantaneous.
+- The optional `/api/safety` suggestion preflight remains a direct lightweight classifier request; final response safety routing runs in the worker.
+- No live Redis integration suite runs without external Upstash credentials. Worker orchestration and Redis response parsing are covered locally with deterministic test doubles.
+- The browser remains the source of truth for the active conversation and loses it on refresh.
 
-## Deferred Phase 2 scope
+## Deferred Phase 3 scope
 
-Phase 2 may introduce a Redis-backed inference queue and worker behind the existing chat application and provider contracts. It should add short-lived job state, idempotent enqueueing, token delivery that supports reconnects, and cancellation where practical. It should not add persistent user history, microservices, CQRS, event sourcing, or unrelated operational infrastructure.
+Phase 3 should focus on stale pending-job recovery, provider/request timeouts, and a small live-Redis integration harness that runs only when credentials are supplied. It should not introduce durable conversation storage, additional services, event sourcing, CQRS, or unrelated operational infrastructure.

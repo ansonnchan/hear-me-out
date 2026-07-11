@@ -2,7 +2,7 @@
 
 Same thought. Different lens.
 
-vent.ai is an ephemeral AI reflection app for writing what is on your mind and hearing it reflected through distinct personality perspectives. It is designed to feel calm, private, and lightweight: no accounts, no saved history, and no persistent user data.
+vent.ai is an ephemeral AI reflection app for writing what is on your mind and hearing it reflected through distinct personality perspectives. It is designed to feel calm, private, and lightweight: no accounts, no saved history, and no durable conversation storage.
 
 ## Preview
 
@@ -29,7 +29,8 @@ Angel in action :)
 - **Animation:** Framer Motion
 - **State:** Zustand
 - **AI:** Groq SDK
-- **Rate Limiting:** Upstash Redis and Upstash Ratelimit
+- **Queue and Rate Limiting:** Upstash Redis and Upstash Ratelimit
+- **Worker:** Separately runnable Node.js inference worker
 - **API:** Next.js route handler at `/api/chat`
 
 ## How It Works
@@ -40,36 +41,37 @@ The `/vent` route shows `PersonalitySelector`, `VentInput`, and the optional fir
 
 Submitting the text shows `ResponsePanel`, which streams the selected personality first and keeps generated responses in Zustand memory for instant tab switching. The client also keeps a temporary in-memory session message list so long sessions can retain continuity without writing vents to storage.
 
-`/api/chat` accepts the new anonymous chat payload, applies optional persona metadata, safety-aware routing, and temporary compressed context, then streams either Groq output or a local mock response. There are no accounts, database writes, saved sessions, profiles, titles, history, or localStorage persistence.
+With Redis configured, `/api/chat` validates and enqueues the anonymous request, then returns a short-lived job ID. A separate worker applies context compression, safety-aware routing, and persona selection before streaming provider output into a replayable Redis event stream. The browser consumes those events over SSE. There are no accounts, saved sessions, profiles, titles, durable history, or localStorage persistence.
 
 ## Privacy-first LLM architecture
 
 vent.ai is anonymous and session-local:
 
 - Anonymous sessions with no accounts.
-- No persistent vent storage and no database for sensitive user text.
+- No durable vent history or user database. Worker job payloads expire from Redis after a short TTL.
 - Manual persona selection remains the primary control.
 - Optional persona suggestion uses a free local heuristic in `lib/ai/persona-router.ts`.
 - Safety-aware response routing runs before generation. When Groq is configured, a small classifier checks every message before the main response; local heuristics remain as fallback and for the first-prompt helper.
-- Progressive context compression summarizes older turns into Zustand memory only, then trims older raw turns from the client session.
+- Progressive context compression summarizes older turns for the active Zustand session, then trims older raw turns from the client.
 - Groq remains the main AI provider behind a provider-neutral completion and streaming interface.
-- TTFT instrumentation stays lightweight through stream timing logs and `Server-Timing` preparation headers.
-- Redis/Upstash rate limiting is enabled for `/api/chat` when its environment variables are configured.
+- Correlation IDs connect API enqueue logs, Redis jobs, worker logs, and SSE responses.
+- Redis/Upstash provides rate limiting, idempotent job creation, worker queueing, and replayable token events when configured.
 
 Architecture flow:
 
 ```text
 User vent
  -> optional persona suggestion
- -> safety-aware routing
- -> Groq streaming response
- -> temporary context compression
+ -> idempotent Redis job
+ -> worker safety routing and temporary context compression
+ -> Groq streaming into Redis events
+ -> reconnectable SSE response
  -> session clears when user leaves, refreshes, or resets
 ```
 
-All session state is kept in memory. Refreshing or closing the tab clears the current vent and responses.
+The active conversation remains in browser memory. Redis temporarily stores only queued inference payloads and events with a rolling 15-minute TTL. Refreshing or closing the tab clears the current vent and responses.
 
-The backend separates HTTP transport, chat orchestration, the ephemeral conversation domain, and the Groq adapter. See [Architecture](docs/architecture.md) for the current dependency rules, request lifecycle, limitations, and deferred worker-queue scope.
+The backend separates HTTP transport, Redis job storage, worker execution, chat orchestration, the ephemeral conversation domain, and the Groq adapter. See [Architecture](docs/architecture.md) for the request lifecycle and dependency rules.
 
 ## Getting Started
 
@@ -91,6 +93,12 @@ Run the development server:
 npm run dev
 ```
 
+When the Upstash variables are configured, run the inference worker in a second terminal:
+
+```bash
+npm run worker
+```
+
 Open:
 
 ```bash
@@ -100,20 +108,21 @@ http://localhost:3000
 ## Environment Variables
 
 ```bash
-GROQ_API_KEY=
+GROQ_API_KEY= EXAMPLE_KEY
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
+UPSTASH_REDIS_REST_URL= EXAMPLE_KEY
+UPSTASH_REDIS_REST_TOKEN= EXAMPLE_KEY
 ```
 
 `GROQ_API_KEY` is optional for local UI work. Without it, the app uses mock, hard-coded responses.
 
-The Upstash variables are optional locally. Add them to enable Redis-backed rate limiting for `/api/chat`.
+The Upstash variables are optional for credential-free UI development. When present, `/api/chat` uses the Redis worker queue and the separately running worker is required. Without them, the app retains its direct streaming fallback.
 
 ## Scripts
 
 ```bash
 npm run dev
+npm run worker
 npm run lint
 npm run typecheck
 npm test
