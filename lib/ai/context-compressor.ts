@@ -1,10 +1,5 @@
 import type { AIProvider } from '@/lib/ai/provider'
-
-export type CompressedContext = {
-  summary: string
-  lastCompressedMessageIndex: number
-  updatedAt: number
-}
+import type { CompressedContext } from '@/lib/conversation/domain'
 
 type CompressibleMessage = {
   role: 'user' | 'assistant'

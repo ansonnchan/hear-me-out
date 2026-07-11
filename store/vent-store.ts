@@ -1,17 +1,12 @@
 'use client'
 
 import { create } from 'zustand'
-import type { CompressedContext } from '@/lib/ai/context-compressor'
+import type { CompressedContext, ConversationMessage } from '@/lib/conversation/domain'
 import { defaultPersonality, type PersonalityKey } from '@/lib/personalities'
 
 type ResponseMap = Partial<Record<PersonalityKey, string>>
 
-export type VentSessionMessage = {
-  index: number
-  role: 'user' | 'assistant'
-  content: string
-  personality?: PersonalityKey
-}
+export type VentSessionMessage = ConversationMessage
 
 interface VentState {
   currentVentText: string
