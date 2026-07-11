@@ -4,7 +4,9 @@ import { prepareChat } from '@/lib/chat/application-service'
 import { parseChatCommand, type ChatRequestBody } from '@/lib/chat/contracts'
 import { mockResponse } from '@/lib/chat/mock-response'
 import type { CompressedContext } from '@/lib/conversation/domain'
+import { RedisInferenceJobStore } from '@/lib/inference/redis-job-store'
 import { applyRateLimitHeaders, checkChatRateLimit } from '@/lib/rate-limit'
+import { getRedis } from '@/lib/redis/client'
 import type { PersonalityKey } from '@/lib/personalities'
 
 type RateLimitResult = Awaited<ReturnType<typeof checkChatRateLimit>>
@@ -96,6 +98,46 @@ export async function POST(request: Request) {
     }
 
     return quietError(400, jsonHeaders(id, rateLimit))
+  }
+
+  const redis = getRedis()
+  if (redis) {
+    const store = new RedisInferenceJobStore(redis)
+    const jobId = crypto.randomUUID()
+    const suppliedIdempotencyKey = request.headers.get('idempotency-key')?.trim().slice(0, 160)
+
+    try {
+      const enqueued = await store.enqueue({
+        jobId,
+        idempotencyKey: suppliedIdempotencyKey || id,
+        payload: {
+          version: 1,
+          requestId: id,
+          command: parsed.command,
+        },
+      })
+      const job = await store.getJob(enqueued.jobId)
+      const jobRequestId = job?.requestId ?? id
+      const headers = jsonHeaders(jobRequestId, rateLimit)
+      headers.set('X-Inference-Mode', 'worker')
+      headers.set('X-Inference-Job-Id', enqueued.jobId)
+
+      console.info('[vent.ai] api.chat.enqueued', {
+        requestId: jobRequestId,
+        jobId: enqueued.jobId,
+        deduplicated: !enqueued.created,
+      })
+
+      return NextResponse.json({
+        jobId: enqueued.jobId,
+        requestId: jobRequestId,
+        eventsUrl: `/api/chat/jobs/${enqueued.jobId}/events`,
+        deduplicated: !enqueued.created,
+      }, { status: 202, headers })
+    } catch (error) {
+      console.error('[vent.ai] api.chat.enqueue_failed', { requestId: id, error })
+      return quietError(503, jsonHeaders(id, rateLimit))
+    }
   }
 
   let prepared: Awaited<ReturnType<typeof prepareChat>>

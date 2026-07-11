@@ -8,6 +8,6 @@ export function isRedisConfigured() {
 
 export function getRedis(): Redis | null {
   if (redis !== undefined) return redis
-  redis = isRedisConfigured() ? Redis.fromEnv({ enableTelemetry: false }) : null
+  redis = isRedisConfigured() ? Redis.fromEnv({ enableTelemetry: false, readYourWrites: true }) : null
   return redis
 }

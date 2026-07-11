@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import type { CompressedContext } from '@/lib/conversation/domain'
 import type { PersonaRouteResult } from '@/lib/ai/persona-router'
 import { recordClientMetric } from '@/lib/client-metrics'
+import { openInferenceEventStream } from '@/lib/inference/sse-client'
 import { personalityAtmospheres } from '@/lib/personality-assets'
 import { normalizePersonalityKey, personalities, type PersonalityKey } from '@/lib/personalities'
 import { cn } from '@/lib/utils'
@@ -14,6 +15,11 @@ import { useVentStore } from '@/store/vent-store'
 
 type StatusMap = Partial<Record<PersonalityKey, 'idle' | 'loading' | 'complete' | 'error'>>
 type ErrorMap = Partial<Record<PersonalityKey, string>>
+
+type QueuedChatResponse = {
+  jobId: string
+  eventsUrl: string
+}
 
 type ChatResponseMeta = {
   requestedPersona?: PersonalityKey
@@ -177,6 +183,23 @@ export function ResponsePanel({
   const [visiblePersonality, setVisiblePersonality] = useState<PersonalityKey | null>(null)
   const lastAutoGenerateKey = useRef(0)
   const lastGeneratedAt = useRef(0)
+  const idempotencyKeys = useRef(new Map<string, string>())
+  const activeJob = useRef<{
+    jobId: string
+    close: () => void
+    terminal: boolean
+  } | null>(null)
+
+  const cancelActiveJob = useCallback(() => {
+    const current = activeJob.current
+    if (!current) return
+
+    current.close()
+    if (!current.terminal) {
+      void fetch(`/api/chat/jobs/${current.jobId}`, { method: 'DELETE', keepalive: true })
+    }
+    activeJob.current = null
+  }, [])
 
   const generateResponse = useCallback(
     async (personality: PersonalityKey) => {
@@ -203,6 +226,7 @@ export function ResponsePanel({
       }
 
       lastGeneratedAt.current = now
+      cancelActiveJob()
       setVisiblePersonality(personality)
       setActivePersonality(personality)
       setStoreResponse(personality, '')
@@ -222,6 +246,14 @@ export function ResponsePanel({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Idempotency-Key': (() => {
+              const key = `${autoGenerateKey}:${personality}`
+              const existing = idempotencyKeys.current.get(key)
+              if (existing) return existing
+              const created = crypto.randomUUID()
+              idempotencyKeys.current.set(key, created)
+              return created
+            })(),
           },
           body: JSON.stringify({
             message: trimmed,
@@ -244,6 +276,88 @@ export function ResponsePanel({
             [personality]: messageForStatus(response.status),
           }))
           setStatuses((current) => ({ ...current, [personality]: 'error' }))
+          return
+        }
+
+        if (response.status === 202) {
+          const queued = await response.json() as Partial<QueuedChatResponse>
+          if (typeof queued.jobId !== 'string' || typeof queued.eventsUrl !== 'string') {
+            throw new Error('Invalid inference job response')
+          }
+          const { jobId, eventsUrl } = queued
+
+          let content = ''
+          const eventStream = openInferenceEventStream(eventsUrl, {
+            onEvent(event) {
+              if (event.type === 'meta') {
+                const meta = event.data
+                responsePersonality = meta.finalPersona
+
+                if (meta.personaSuggestion) onPersonaSuggestion?.(meta.personaSuggestion)
+                if (meta.contextCompressed && meta.compressedContext) applyCompressedContext(meta.compressedContext)
+                setSafetyNote(meta.safetyNote ?? null)
+
+                if (responsePersonality !== personality) {
+                  setVisiblePersonality(responsePersonality)
+                  setActivePersonality(responsePersonality)
+                  setStoreResponse(responsePersonality, '')
+                  setErrors((current) => ({
+                    ...current,
+                    [personality]: undefined,
+                    [responsePersonality]: undefined,
+                  }))
+                  setStatuses((current) => ({
+                    ...current,
+                    [personality]: 'idle',
+                    [responsePersonality]: 'loading',
+                  }))
+                }
+              }
+
+              if (event.type === 'token') {
+                if (!firstTokenAt) {
+                  firstTokenAt = performance.now()
+                  console.info('vent.ai client_ttft_ms', Math.round(firstTokenAt - requestStartedAt))
+                }
+                content += event.data.text
+                setStoreResponse(responsePersonality, content)
+              }
+
+              if (event.type === 'complete') {
+                const currentJob = activeJob.current
+                if (currentJob && currentJob.jobId === jobId) currentJob.terminal = true
+                setStatuses((current) => ({ ...current, [responsePersonality]: 'complete' }))
+                recordClientMetric('response_generated', {
+                  personality: responsePersonality,
+                  ttftMs: firstTokenAt ? Math.round(firstTokenAt - requestStartedAt) : undefined,
+                  totalMs: Math.round(performance.now() - requestStartedAt),
+                })
+                if (content.trim()) {
+                  addSessionMessage({
+                    role: 'assistant',
+                    content: content.trim(),
+                    personality: responsePersonality,
+                  })
+                }
+              }
+
+              if (event.type === 'failed' || event.type === 'cancelled') {
+                const currentJob = activeJob.current
+                if (currentJob && currentJob.jobId === jobId) currentJob.terminal = true
+              }
+            },
+          })
+
+          activeJob.current = {
+            jobId,
+            close: eventStream.close,
+            terminal: false,
+          }
+          try {
+            await eventStream.done
+          } finally {
+            if (activeJob.current?.jobId === jobId) activeJob.current = null
+          }
           return
         }
 
@@ -339,6 +453,8 @@ export function ResponsePanel({
       acceptedSuggestedPersona,
       addSessionMessage,
       applyCompressedContext,
+      autoGenerateKey,
+      cancelActiveJob,
       compressedContext,
       onGeneratingChange,
       onPersonaSuggestion,
@@ -358,6 +474,8 @@ export function ResponsePanel({
     void generateResponse(activePersonality)
   }, [activePersonality, autoGenerateKey, generateResponse])
 
+  useEffect(() => cancelActiveJob, [cancelActiveJob])
+
   const active = personalities[activePersonality]
   const activeResponse = visiblePersonality === activePersonality ? responses[activePersonality] : ''
   const activeStatus = statuses[activePersonality]
@@ -366,6 +484,8 @@ export function ResponsePanel({
   const hasResponse = Boolean(activeResponse)
 
   function clearResponse() {
+    cancelActiveJob()
+    idempotencyKeys.current.delete(`${autoGenerateKey}:${activePersonality}`)
     setStoreResponse(activePersonality, '')
     setVisiblePersonality(null)
     setErrors((current) => ({ ...current, [activePersonality]: undefined }))
