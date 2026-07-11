@@ -16,7 +16,8 @@ export async function processInferenceJob(params: {
   const { job } = claim
   const startedAt = performance.now()
 
-  if (!await store.markRunning(job.id)) {
+  const attempt = await store.markRunning(job.id)
+  if (!attempt) {
     await store.acknowledge(claim.queueEntryId)
     return
   }
@@ -31,7 +32,15 @@ export async function processInferenceJob(params: {
   }, 250)
 
   try {
-    logger.info('[vent.ai] worker.job_started', { jobId: job.id, requestId: job.requestId })
+    logger.info('[vent.ai] worker.job_started', {
+      jobId: job.id,
+      requestId: job.requestId,
+      attempt,
+      reclaimed: claim.reclaimed,
+    })
+    if (claim.reclaimed) {
+      await store.publish(job.id, { id: '', type: 'reset', data: { attempt } })
+    }
     const prepared = await prepareChat(job.payload.command, provider)
     if (await store.isCancelled(job.id)) return
 

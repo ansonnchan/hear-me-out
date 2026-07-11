@@ -38,6 +38,13 @@ export async function runInferenceWorker(params: {
     try {
       const claim = await store.claimNext(consumerName)
       if (claim) {
+        logger.info('[vent.ai] worker.job_claimed', {
+          jobId: claim.job.id,
+          requestId: claim.job.requestId,
+          queueEntryId: claim.queueEntryId,
+          reclaimed: claim.reclaimed,
+          previousAttempt: claim.job.attempt,
+        })
         await processInferenceJob({ claim, store, provider, logger })
       } else {
         await wait(pollIntervalMs, signal)

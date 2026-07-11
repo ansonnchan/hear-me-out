@@ -26,6 +26,7 @@ export class InMemoryInferenceJobStore implements InferenceJobStore {
       requestId: params.payload.requestId,
       status: 'queued',
       payload: params.payload,
+      attempt: 0,
       createdAt: now,
       updatedAt: now,
     })
@@ -39,7 +40,7 @@ export class InMemoryInferenceJobStore implements InferenceJobStore {
     const entry = this.queue.shift()
     if (!entry) return null
     const job = this.jobs.get(entry.jobId)
-    return job ? { queueEntryId: entry.id, job: { ...job } } : null
+    return job ? { queueEntryId: entry.id, job: { ...job }, reclaimed: false } : null
   }
 
   async acknowledge(queueEntryId: string) {
@@ -53,10 +54,11 @@ export class InMemoryInferenceJobStore implements InferenceJobStore {
 
   async markRunning(jobId: string) {
     const job = this.jobs.get(jobId)
-    if (!job || job.status !== 'queued') return false
+    if (!job || job.status !== 'queued') return null
+    job.attempt += 1
     job.status = 'running'
     job.updatedAt = Date.now()
-    return true
+    return job.attempt
   }
 
   async publish(jobId: string, event: PublishableInferenceEvent) {
@@ -90,6 +92,14 @@ export class InMemoryInferenceJobStore implements InferenceJobStore {
     return (this.events.get(jobId) ?? [])
       .filter((event) => Number(event.id.split('-')[0]) > Number(afterId.split('-')[0]))
       .slice(0, count)
+  }
+
+  reclaimAfterCrash(queueEntryId: string, jobId: string): ClaimedInferenceJob {
+    const job = this.jobs.get(jobId)
+    if (!job || job.status !== 'running') throw new Error('Expected a running job to reclaim')
+    job.status = 'queued'
+    job.updatedAt = Date.now()
+    return { queueEntryId, job: { ...job }, reclaimed: true }
   }
 
   private finish(jobId: string, status: 'completed' | 'failed', type: 'complete' | 'failed', data: object) {

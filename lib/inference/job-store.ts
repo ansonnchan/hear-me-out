@@ -16,7 +16,7 @@ export interface InferenceJobStore {
   claimNext(consumerName: string): Promise<ClaimedInferenceJob | null>
   acknowledge(queueEntryId: string): Promise<void>
   getJob(jobId: string): Promise<InferenceJob | null>
-  markRunning(jobId: string): Promise<boolean>
+  markRunning(jobId: string): Promise<number | null>
   publish(jobId: string, event: PublishableInferenceEvent): Promise<string>
   complete(jobId: string): Promise<boolean>
   fail(jobId: string, message: string): Promise<boolean>

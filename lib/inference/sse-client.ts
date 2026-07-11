@@ -37,7 +37,7 @@ export function openInferenceEventStream(url: string, handlers: InferenceEventHa
     reconnectTimer = setTimeout(() => finish(new Error('Lost the connection. Check your network and try again.')), 15_000)
   }
 
-  for (const type of ['meta', 'token', 'complete', 'failed', 'cancelled'] as const) {
+  for (const type of ['reset', 'meta', 'token', 'complete', 'failed', 'cancelled'] as const) {
     source.addEventListener(type, (message) => {
       try {
         const event = {

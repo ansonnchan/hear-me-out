@@ -123,4 +123,27 @@ describe('inference worker pipeline', () => {
     })
     expect((await store.readEvents('job-1', '0-0')).map((event) => event.type)).toEqual(['meta', 'failed'])
   })
+
+  it('restarts a crashed attempt with a reset event and preserves replay ordering', async () => {
+    const store = new InMemoryInferenceJobStore()
+    const originalClaim = await enqueueAndClaim(store)
+    expect(await store.markRunning('job-1')).toBe(1)
+    await store.publish('job-1', { id: '', type: 'token', data: { text: 'partial' } })
+
+    const reclaimed = store.reclaimAfterCrash(originalClaim.queueEntryId, 'job-1')
+    await processInferenceJob({ claim: reclaimed, store, provider: new StreamingProvider(), logger })
+
+    const events = await store.readEvents('job-1', '0-0')
+    expect(events.map((event) => event.type)).toEqual([
+      'token',
+      'reset',
+      'meta',
+      'token',
+      'token',
+      'complete',
+    ])
+    expect(events.find((event) => event.type === 'reset')?.data).toEqual({ attempt: 2 })
+    await expect(store.readEvents('job-1', events[0].id)).resolves.toEqual(events.slice(1))
+    await expect(store.getJob('job-1')).resolves.toMatchObject({ status: 'completed', attempt: 2 })
+  })
 })

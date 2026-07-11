@@ -289,6 +289,12 @@ export function ResponsePanel({
           let content = ''
           const eventStream = openInferenceEventStream(eventsUrl, {
             onEvent(event) {
+              if (event.type === 'reset') {
+                content = ''
+                firstTokenAt = null
+                setStoreResponse(responsePersonality, '')
+              }
+
               if (event.type === 'meta') {
                 const meta = event.data
                 responsePersonality = meta.finalPersona

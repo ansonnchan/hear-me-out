@@ -9,7 +9,8 @@
     "worker": "tsx worker/index.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:redis": "RUN_REDIS_INTEGRATION_TESTS=true vitest run lib/inference/redis-stream.integration.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.0",
