@@ -22,14 +22,14 @@ export class GroqAIProvider implements AIProvider {
     return completion.choices[0]?.message?.content ?? ''
   }
 
-  async stream(request: AICompletionRequest): Promise<AsyncIterable<string>> {
+  async stream(request: AICompletionRequest, signal?: AbortSignal): Promise<AsyncIterable<string>> {
     const completion = await this.client.chat.completions.create({
       model: this.model,
       stream: true,
       temperature: request.temperature,
       max_tokens: request.maxTokens,
       messages: request.messages,
-    })
+    }, { signal })
 
     return {
       async *[Symbol.asyncIterator]() {

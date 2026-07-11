@@ -1,0 +1,52 @@
+import { hostname } from 'node:os'
+import type { AIProvider } from '@/lib/ai/provider'
+import type { InferenceJobStore } from '@/lib/inference/job-store'
+import { processInferenceJob, type WorkerLogger } from '@/worker/process-job'
+
+function wait(milliseconds: number, signal: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    if (signal.aborted) return resolve()
+    const timeout = setTimeout(resolve, milliseconds)
+    signal.addEventListener('abort', () => {
+      clearTimeout(timeout)
+      resolve()
+    }, { once: true })
+  })
+}
+
+export async function runInferenceWorker(params: {
+  store: InferenceJobStore
+  provider: AIProvider | null
+  signal: AbortSignal
+  consumerName?: string
+  pollIntervalMs?: number
+  logger?: WorkerLogger
+}) {
+  const {
+    store,
+    provider,
+    signal,
+    consumerName = `${hostname()}-${process.pid}`,
+    pollIntervalMs = 500,
+    logger = console,
+  } = params
+
+  await store.ensureConsumerGroup()
+  logger.info('[vent.ai] worker.ready', { consumerName, provider: provider?.name ?? 'mock' })
+
+  while (!signal.aborted) {
+    try {
+      const claim = await store.claimNext(consumerName)
+      if (claim) {
+        await processInferenceJob({ claim, store, provider, logger })
+      } else {
+        await wait(pollIntervalMs, signal)
+      }
+    } catch (error) {
+      logger.error('[vent.ai] worker.poll_failed', { consumerName, error })
+      await wait(pollIntervalMs, signal)
+    }
+  }
+
+  logger.info('[vent.ai] worker.stopped', { consumerName })
+}
