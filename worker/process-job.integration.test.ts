@@ -146,4 +146,78 @@ describe('inference worker pipeline', () => {
     await expect(store.readEvents('job-1', events[0].id)).resolves.toEqual(events.slice(1))
     await expect(store.getJob('job-1')).resolves.toMatchObject({ status: 'completed', attempt: 2 })
   })
+
+  it('times out a job that waited beyond its queue deadline', async () => {
+    const store = new InMemoryInferenceJobStore()
+    const claim = await enqueueAndClaim(store)
+    claim.job.createdAt = Date.now() - 100
+    const provider = new StreamingProvider()
+    let streamCalled = false
+    provider.stream = async () => {
+      streamCalled = true
+      return {
+        async *[Symbol.asyncIterator]() {
+          yield 'unused'
+        },
+      }
+    }
+
+    await processInferenceJob({
+      claim,
+      store,
+      provider,
+      logger,
+      limits: {
+        maxQueuedMs: 10,
+        maxExecutionMs: 1000,
+        maxSseWaitMs: 1000,
+        maxStallMs: 1000,
+        workerLeaseMs: 2000,
+      },
+    })
+
+    expect(streamCalled).toBe(false)
+    await expect(store.getJob('job-1')).resolves.toMatchObject({
+      status: 'timed_out',
+      timeoutReason: 'queue_deadline',
+    })
+  })
+
+  it('aborts the provider and publishes a timeout after the execution deadline', async () => {
+    const store = new InMemoryInferenceJobStore()
+    const claim = await enqueueAndClaim(store)
+    const provider = new StreamingProvider()
+    let providerWasAborted = false
+    provider.stream = async (_request, signal) => ({
+      async *[Symbol.asyncIterator]() {
+        await new Promise<void>((_resolve, reject) => {
+          signal?.addEventListener('abort', () => {
+            providerWasAborted = true
+            reject(signal.reason)
+          }, { once: true })
+        })
+      },
+    })
+
+    await processInferenceJob({
+      claim,
+      store,
+      provider,
+      logger,
+      limits: {
+        maxQueuedMs: 1000,
+        maxExecutionMs: 10,
+        maxSseWaitMs: 1000,
+        maxStallMs: 1000,
+        workerLeaseMs: 2000,
+      },
+    })
+
+    expect(providerWasAborted).toBe(true)
+    await expect(store.getJob('job-1')).resolves.toMatchObject({
+      status: 'timed_out',
+      timeoutReason: 'execution_deadline',
+    })
+    expect((await store.readEvents('job-1', '0-0')).at(-1)?.type).toBe('timed_out')
+  })
 })

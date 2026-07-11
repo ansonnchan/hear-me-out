@@ -11,6 +11,6 @@ export type AICompletionRequest = {
 
 export interface AIProvider {
   readonly name: string
-  complete(request: AICompletionRequest): Promise<string>
+  complete(request: AICompletionRequest, signal?: AbortSignal): Promise<string>
   stream(request: AICompletionRequest, signal?: AbortSignal): Promise<AsyncIterable<string>>
 }

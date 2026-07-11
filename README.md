@@ -112,11 +112,18 @@ GROQ_API_KEY= EXAMPLE_KEY
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 UPSTASH_REDIS_REST_URL= EXAMPLE_KEY
 UPSTASH_REDIS_REST_TOKEN= EXAMPLE_KEY
+INFERENCE_MAX_QUEUE_MS=60000
+INFERENCE_MAX_EXECUTION_MS=90000
+INFERENCE_MAX_SSE_WAIT_MS=120000
+INFERENCE_MAX_STALL_MS=30000
+INFERENCE_WORKER_LEASE_MS=120000
 ```
 
 `GROQ_API_KEY` is optional for local UI work. Without it, the app uses mock, hard-coded responses.
 
 The Upstash variables are optional for credential-free UI development. When present, `/api/chat` uses the Redis worker queue and the separately running worker is required. Without them, the app retains its direct streaming fallback.
+
+The inference limits are optional and default to the values shown. The worker lease is always kept longer than the execution deadline so a healthy worker cannot have an active job reclaimed.
 
 ## Scripts
 

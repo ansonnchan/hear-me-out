@@ -8,6 +8,7 @@ import type { CompressedContext } from '@/lib/conversation/domain'
 import type { PersonaRouteResult } from '@/lib/ai/persona-router'
 import { recordClientMetric } from '@/lib/client-metrics'
 import { openInferenceEventStream } from '@/lib/inference/sse-client'
+import { shouldResetInferenceAttempt } from '@/lib/inference/terminal-events'
 import { personalityAtmospheres } from '@/lib/personality-assets'
 import { normalizePersonalityKey, personalities, type PersonalityKey } from '@/lib/personalities'
 import { cn } from '@/lib/utils'
@@ -238,6 +239,9 @@ export function ResponsePanel({
       let responsePersonality = personality
       const requestStartedAt = performance.now()
       let firstTokenAt: number | null = null
+      const attemptKey = `${autoGenerateKey}:${personality}`
+      const idempotencyKey = idempotencyKeys.current.get(attemptKey) ?? crypto.randomUUID()
+      idempotencyKeys.current.set(attemptKey, idempotencyKey)
 
       try {
         recordClientMetric('api_call', { personality, characters: trimmed.length })
@@ -246,14 +250,7 @@ export function ResponsePanel({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Idempotency-Key': (() => {
-              const key = `${autoGenerateKey}:${personality}`
-              const existing = idempotencyKeys.current.get(key)
-              if (existing) return existing
-              const created = crypto.randomUUID()
-              idempotencyKeys.current.set(key, created)
-              return created
-            })(),
+            'Idempotency-Key': idempotencyKey,
           },
           body: JSON.stringify({
             message: trimmed,
@@ -347,7 +344,8 @@ export function ResponsePanel({
                 }
               }
 
-              if (event.type === 'failed' || event.type === 'cancelled') {
+              if (shouldResetInferenceAttempt(event.type)) {
+                idempotencyKeys.current.delete(attemptKey)
                 const currentJob = activeJob.current
                 if (currentJob && currentJob.jobId === jobId) currentJob.terminal = true
               }

@@ -1,14 +1,15 @@
 import type { Redis } from '@upstash/redis'
 import type { InferenceJobStore } from '@/lib/inference/job-store'
+import { INFERENCE_LIMITS } from '@/lib/inference/config'
 import {
   INFERENCE_JOB_TTL_SECONDS,
-  INFERENCE_WORKER_LEASE_MS,
   MAX_INFERENCE_ATTEMPTS,
   type ClaimedInferenceJob,
   type InferenceEvent,
   type InferenceJob,
   type InferenceJobPayload,
   type InferenceJobStatus,
+  type InferenceTimeoutReason,
   type PublishableInferenceEvent,
 } from '@/lib/inference/types'
 
@@ -71,6 +72,20 @@ redis.call('EXPIRE', KEYS[2], ARGV[2])
 return 1
 `
 
+const TIMEOUT_SCRIPT = `
+local current = redis.call('HGET', KEYS[1], 'status')
+if current ~= ARGV[1] then return 0 end
+redis.call('HSET', KEYS[1],
+  'status', 'timed_out',
+  'updatedAt', ARGV[2],
+  'error', ARGV[3],
+  'timeoutReason', ARGV[4])
+redis.call('EXPIRE', KEYS[1], ARGV[5])
+redis.call('XADD', KEYS[2], 'MAXLEN', '~', ARGV[6], '*', 'type', 'timed_out', 'data', ARGV[7])
+redis.call('EXPIRE', KEYS[2], ARGV[5])
+return 1
+`
+
 function jobKey(jobId: string) {
   return `vent-ai:inference:job:${jobId}`
 }
@@ -99,7 +114,7 @@ function parseJob(value: Record<string, unknown> | null): InferenceJob | null {
   const payload = parsePayload(value.payload)
   const status = value.status as InferenceJobStatus
   if (!payload || typeof value.id !== 'string' || typeof value.requestId !== 'string') return null
-  if (!['queued', 'running', 'completed', 'failed', 'cancelled'].includes(status)) return null
+  if (!['queued', 'running', 'completed', 'failed', 'cancelled', 'timed_out'].includes(status)) return null
 
   return {
     id: value.id,
@@ -110,6 +125,7 @@ function parseJob(value: Record<string, unknown> | null): InferenceJob | null {
     createdAt: Number(value.createdAt),
     updatedAt: Number(value.updatedAt),
     error: typeof value.error === 'string' && value.error ? value.error : undefined,
+    timeoutReason: typeof value.timeoutReason === 'string' ? value.timeoutReason as InferenceTimeoutReason : undefined,
   }
 }
 
@@ -153,7 +169,7 @@ function parseEvent(id: string, value: Record<string, unknown>): InferenceEvent 
     }
   }
   if (!data || typeof data !== 'object') return null
-  if (type !== 'reset' && type !== 'meta' && type !== 'token' && type !== 'complete' && type !== 'failed' && type !== 'cancelled') return null
+  if (type !== 'reset' && type !== 'meta' && type !== 'token' && type !== 'complete' && type !== 'failed' && type !== 'cancelled' && type !== 'timed_out') return null
   return { id, type, data } as InferenceEvent
 }
 
@@ -203,7 +219,7 @@ export class RedisInferenceJobStore implements InferenceJobStore {
         QUEUE_KEY,
         CONSUMER_GROUP,
         consumerName,
-        INFERENCE_WORKER_LEASE_MS,
+        INFERENCE_LIMITS.workerLeaseMs,
         '0-0',
         { count: 1 },
       ))
@@ -223,6 +239,13 @@ export class RedisInferenceJobStore implements InferenceJobStore {
     return parseJob(await this.redis.hgetall<Record<string, unknown>>(jobKey(jobId)))
   }
 
+  async getStatus(jobId: string) {
+    const status = await this.redis.hget(jobKey(jobId), 'status')
+    return typeof status === 'string' && ['queued', 'running', 'completed', 'failed', 'cancelled', 'timed_out'].includes(status)
+      ? status as InferenceJobStatus
+      : null
+  }
+
   async markRunning(jobId: string) {
     const result = await this.redis.eval(MARK_RUNNING_SCRIPT, [jobKey(jobId)], [
       String(Date.now()),
@@ -237,9 +260,10 @@ export class RedisInferenceJobStore implements InferenceJobStore {
     pipeline.xadd(eventKey(jobId), '*', { type: event.type, data: event.data }, {
       trim: { type: 'MAXLEN', threshold: MAX_EVENT_ENTRIES, comparison: '~' },
     })
+    pipeline.hset(jobKey(jobId), { updatedAt: Date.now() })
     pipeline.expire(eventKey(jobId), INFERENCE_JOB_TTL_SECONDS)
     pipeline.expire(jobKey(jobId), INFERENCE_JOB_TTL_SECONDS)
-    const [eventId] = await pipeline.exec<[string, number, number]>()
+    const [eventId] = await pipeline.exec<[string, number, number, number]>()
     return eventId
   }
 
@@ -253,6 +277,23 @@ export class RedisInferenceJobStore implements InferenceJobStore {
     return this.terminal(jobId, 'running', 'failed', 'failed', message, { message }, now)
   }
 
+  async timeout(jobId: string, expected: 'queued' | 'running', reason: InferenceTimeoutReason) {
+    const now = Date.now()
+    const message = reason === 'queue_deadline'
+      ? 'The response took too long to start. Please try again.'
+      : 'The response took too long. Please try again.'
+    const result = await this.redis.eval(TIMEOUT_SCRIPT, [jobKey(jobId), eventKey(jobId)], [
+      expected,
+      String(now),
+      message,
+      reason,
+      String(INFERENCE_JOB_TTL_SECONDS),
+      String(MAX_EVENT_ENTRIES),
+      JSON.stringify({ message, reason, timedOutAt: now }),
+    ])
+    return Number(result) === 1
+  }
+
   async cancel(jobId: string) {
     const now = Date.now()
     const result = await this.redis.eval(CANCEL_SCRIPT, [jobKey(jobId), eventKey(jobId)], [
@@ -262,10 +303,6 @@ export class RedisInferenceJobStore implements InferenceJobStore {
       JSON.stringify({ cancelledAt: now }),
     ])
     return Number(result) === 1
-  }
-
-  async isCancelled(jobId: string) {
-    return await this.redis.hget(jobKey(jobId), 'status') === 'cancelled'
   }
 
   async readEvents(jobId: string, afterId: string, count = 100) {

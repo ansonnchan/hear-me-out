@@ -1,18 +1,8 @@
 import { hostname } from 'node:os'
 import type { AIProvider } from '@/lib/ai/provider'
+import { abortableDelay } from '@/lib/inference/abortable-delay'
 import type { InferenceJobStore } from '@/lib/inference/job-store'
 import { processInferenceJob, type WorkerLogger } from '@/worker/process-job'
-
-function wait(milliseconds: number, signal: AbortSignal) {
-  return new Promise<void>((resolve) => {
-    if (signal.aborted) return resolve()
-    const timeout = setTimeout(resolve, milliseconds)
-    signal.addEventListener('abort', () => {
-      clearTimeout(timeout)
-      resolve()
-    }, { once: true })
-  })
-}
 
 export async function runInferenceWorker(params: {
   store: InferenceJobStore
@@ -47,11 +37,11 @@ export async function runInferenceWorker(params: {
         })
         await processInferenceJob({ claim, store, provider, logger })
       } else {
-        await wait(pollIntervalMs, signal)
+        await abortableDelay(pollIntervalMs, signal)
       }
     } catch (error) {
       logger.error('[vent.ai] worker.poll_failed', { consumerName, error })
-      await wait(pollIntervalMs, signal)
+      await abortableDelay(pollIntervalMs, signal)
     }
   }
 

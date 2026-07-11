@@ -37,7 +37,7 @@ export function openInferenceEventStream(url: string, handlers: InferenceEventHa
     reconnectTimer = setTimeout(() => finish(new Error('Lost the connection. Check your network and try again.')), 15_000)
   }
 
-  for (const type of ['reset', 'meta', 'token', 'complete', 'failed', 'cancelled'] as const) {
+  for (const type of ['reset', 'meta', 'token', 'complete', 'failed', 'cancelled', 'timed_out', 'expired'] as const) {
     source.addEventListener(type, (message) => {
       try {
         const event = {
@@ -47,8 +47,11 @@ export function openInferenceEventStream(url: string, handlers: InferenceEventHa
         } as InferenceEvent
         handlers.onEvent(event)
 
-        if (type === 'complete' || type === 'cancelled') finish()
+        if (type === 'complete') finish()
         if (type === 'failed') finish(new Error((event as Extract<InferenceEvent, { type: 'failed' }>).data.message))
+        if (type === 'cancelled') finish(new Error('The response was cancelled. Please try again.'))
+        if (type === 'timed_out') finish(new Error((event as Extract<InferenceEvent, { type: 'timed_out' }>).data.message))
+        if (type === 'expired') finish(new Error((event as Extract<InferenceEvent, { type: 'expired' }>).data.message))
       } catch {
         finish(new Error('Received an invalid inference event.'))
       }

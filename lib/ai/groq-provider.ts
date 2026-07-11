@@ -11,13 +11,13 @@ export class GroqAIProvider implements AIProvider {
     private readonly model = DEFAULT_MODEL,
   ) {}
 
-  async complete(request: AICompletionRequest) {
+  async complete(request: AICompletionRequest, signal?: AbortSignal) {
     const completion = await this.client.chat.completions.create({
       model: this.model,
       temperature: request.temperature,
       max_tokens: request.maxTokens,
       messages: request.messages,
-    })
+    }, { signal })
 
     return completion.choices[0]?.message?.content ?? ''
   }

@@ -1,8 +1,9 @@
 import type { Redis } from '@upstash/redis'
 import { describe, expect, it, vi } from 'vitest'
 import { RedisInferenceJobStore } from '@/lib/inference/redis-job-store'
+import { INFERENCE_LIMITS } from '@/lib/inference/config'
 import type { InferenceJobPayload } from '@/lib/inference/types'
-import { INFERENCE_WORKER_LEASE_MS, MAX_INFERENCE_ATTEMPTS } from '@/lib/inference/types'
+import { MAX_INFERENCE_ATTEMPTS } from '@/lib/inference/types'
 
 const payload: InferenceJobPayload = {
   version: 1,
@@ -101,7 +102,7 @@ describe('Redis inference job store', () => {
       expect.any(String),
       expect.any(String),
       'worker-2',
-      INFERENCE_WORKER_LEASE_MS,
+      INFERENCE_LIMITS.workerLeaseMs,
       '0-0',
       { count: 1 },
     )
@@ -119,7 +120,7 @@ describe('Redis inference job store', () => {
       expect.any(String),
       expect.any(String),
       'worker-2',
-      INFERENCE_WORKER_LEASE_MS,
+      INFERENCE_LIMITS.workerLeaseMs,
       '0-0',
       { count: 1 },
     )

@@ -54,4 +54,18 @@ describe('inference SSE client', () => {
     await expect(stream.done).rejects.toThrow('Inference failed.')
     expect(FakeEventSource.current.closed).toBe(true)
   })
+
+  it.each([
+    ['cancelled', { cancelledAt: 4 }],
+    ['timed_out', { message: 'Too slow.', reason: 'execution_deadline', timedOutAt: 4 }],
+    ['expired', { message: 'Expired.', expiredAt: 4 }],
+  ] as const)('surfaces the terminal %s event as retryable', async (type, data) => {
+    vi.stubGlobal('EventSource', FakeEventSource)
+    const stream = openInferenceEventStream('/events', { onEvent() {} })
+
+    FakeEventSource.current.emit(type, data, '4-0')
+
+    await expect(stream.done).rejects.toThrow()
+    expect(FakeEventSource.current.closed).toBe(true)
+  })
 })

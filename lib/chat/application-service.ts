@@ -16,7 +16,7 @@ export type PreparedChat = {
   completionRequest: AICompletionRequest
 }
 
-async function maybeCompressContext(command: ChatCommand, provider: AIProvider | null) {
+async function maybeCompressContext(command: ChatCommand, provider: AIProvider | null, signal?: AbortSignal) {
   const { messages, compressedContext } = command.conversation
   if (messages.length <= RAW_MESSAGE_WINDOW) return undefined
 
@@ -32,19 +32,23 @@ async function maybeCompressContext(command: ChatCommand, provider: AIProvider |
       content: message.content,
       personality: message.personality ? personalities[message.personality].name : undefined,
     })),
-  }, provider)
+  }, provider, signal)
 }
 
-export async function prepareChat(command: ChatCommand, provider: AIProvider | null): Promise<PreparedChat> {
+export async function prepareChat(
+  command: ChatCommand,
+  provider: AIProvider | null,
+  signal?: AbortSignal,
+): Promise<PreparedChat> {
   const { messages, compressedContext } = command.conversation
   const isOpeningMessage = messages.filter((message) => message.role === 'user').length <= 1
   const personaSuggestion = isOpeningMessage ? routePersona(command.message) : undefined
-  const nextCompressedContext = await maybeCompressContext(command, provider)
+  const nextCompressedContext = await maybeCompressContext(command, provider, signal)
   const contextForPrompt = nextCompressedContext ?? compressedContext
   const safetyRoute = await routeSafety({
     message: command.message,
     selectedPersona: command.selectedPersona as PersonalityId,
-  }, provider)
+  }, provider, signal)
   const finalPersona = safetyRoute.shouldOverridePersona
     ? normalizePersonalityKey(safetyRoute.saferPersona) ?? 'cotton'
     : command.selectedPersona

@@ -61,12 +61,12 @@ When Redis is not configured, `/api/chat` retains the Phase 1 direct streaming p
 
 ## Redis data model
 
-- `vent-ai:inference:queue`: global queue stream containing job and correlation IDs, not vent text. It is capped to a bounded length.
+- `vent-ai:inference:queue`: global queue stream containing job and correlation IDs, not vent text. Entries are deleted after acknowledgement.
 - `vent-ai:inference:job:{jobId}`: job status, request ID, and validated command payload.
 - `vent-ai:inference:job:{jobId}:events`: ordered metadata, token, and terminal events.
 - `vent-ai:inference:idempotency:{key}`: maps a browser attempt to its existing job.
 
-Job hashes, event streams, and idempotency keys use a rolling 15-minute TTL. Queue entries contain no conversation payload. There is no durable message or response history.
+Job hashes, event streams, and idempotency keys use a rolling 15-minute TTL. Queue entries contain no conversation payload and are never trimmed while pending. There is no durable message or response history.
 
 ## Job lifecycle
 
@@ -75,9 +75,13 @@ queued -> running -> completed
                   -> failed
 queued  -> cancelled
 running -> cancelled
+queued  -> timed_out
+running -> timed_out
 ```
 
-Lifecycle transitions and their terminal events are atomic. Cancellation immediately creates a replayable `cancelled` event. The worker watches cancellation while preparing and streaming, then aborts the provider stream where supported.
+Lifecycle transitions and their terminal events are atomic. Cancellation immediately creates a replayable `cancelled` event. The worker watches cancellation while preparing and streaming, then aborts the provider stream where supported. Queue, execution, stalled-activity, and SSE deadlines produce an explicit replayable `timed_out` event.
+
+Workers reclaim pending entries with `XAUTOCLAIM` only after a lease longer than the maximum execution duration. A reclaimed job keeps its correlation and idempotency identifiers and emits `reset` before restarting token delivery. Jobs receive at most two execution attempts; this is an at-least-once recovery model, not exactly-once processing.
 
 ## Dependency rules
 
@@ -97,12 +101,9 @@ Lifecycle transitions and their terminal events are atomic. Cancellation immedia
 
 ## Current limitations
 
-- Jobs claimed by a worker that crashes remain pending in the Redis consumer group; stale pending-job recovery is deferred.
 - Cancellation is checked through polling, so provider abortion is prompt but not instantaneous.
 - The optional `/api/safety` suggestion preflight remains a direct lightweight classifier request; final response safety routing runs in the worker.
 - No live Redis integration suite runs without external Upstash credentials. Worker orchestration and Redis response parsing are covered locally with deterministic test doubles.
 - The browser remains the source of truth for the active conversation and loses it on refresh.
 
-## Deferred Phase 3 scope
-
-Phase 3 should focus on stale pending-job recovery, provider/request timeouts, and a small live-Redis integration harness that runs only when credentials are supplied. It should not introduce durable conversation storage, additional services, event sourcing, CQRS, or unrelated operational infrastructure.
+The credential-gated `npm run test:redis` command verifies consumer-group and `XAUTOCLAIM` behavior against a real Redis-compatible instance when Upstash credentials are available.

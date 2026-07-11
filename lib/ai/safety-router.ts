@@ -159,7 +159,7 @@ function routeFromLevel(level: SafetyLevel, selectedPersona: PersonalityId, safe
 export async function routeSafety(params: {
   message: string
   selectedPersona: PersonalityId
-}, provider: AIProvider | null): Promise<SafetyRouteResult> {
+}, provider: AIProvider | null, signal?: AbortSignal): Promise<SafetyRouteResult> {
   const localRoute = localSafetyRoute(params.message, params.selectedPersona)
 
   if (!provider) {
@@ -191,7 +191,7 @@ Return:
           content: params.message,
         },
       ],
-    })
+    }, signal)
 
     const classifierResult = parseClassifierResult(content)
     if (!classifierResult) return localRoute
@@ -209,6 +209,7 @@ Return:
           : localRoute.internalReason,
     }
   } catch (error) {
+    if (signal?.aborted) throw signal.reason
     console.error('Safety routing classifier failed', error)
     return localRoute
   }

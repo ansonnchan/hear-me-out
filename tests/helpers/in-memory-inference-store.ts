@@ -5,6 +5,8 @@ import type {
   InferenceJob,
   InferenceJobPayload,
   PublishableInferenceEvent,
+  InferenceJobStatus,
+  InferenceTimeoutReason,
 } from '@/lib/inference/types'
 
 export class InMemoryInferenceJobStore implements InferenceJobStore {
@@ -52,6 +54,10 @@ export class InMemoryInferenceJobStore implements InferenceJobStore {
     return job ? { ...job } : null
   }
 
+  async getStatus(jobId: string): Promise<InferenceJobStatus | null> {
+    return this.jobs.get(jobId)?.status ?? null
+  }
+
   async markRunning(jobId: string) {
     const job = this.jobs.get(jobId)
     if (!job || job.status !== 'queued') return null
@@ -62,6 +68,8 @@ export class InMemoryInferenceJobStore implements InferenceJobStore {
   }
 
   async publish(jobId: string, event: PublishableInferenceEvent) {
+    const job = this.jobs.get(jobId)
+    if (job) job.updatedAt = Date.now()
     return this.append(jobId, event.type, event.data)
   }
 
@@ -75,6 +83,20 @@ export class InMemoryInferenceJobStore implements InferenceJobStore {
     return this.finish(jobId, 'failed', 'failed', { message })
   }
 
+  async timeout(jobId: string, expected: 'queued' | 'running', reason: InferenceTimeoutReason) {
+    const job = this.jobs.get(jobId)
+    if (!job || job.status !== expected) return false
+    const message = reason === 'queue_deadline'
+      ? 'The response took too long to start. Please try again.'
+      : 'The response took too long. Please try again.'
+    job.status = 'timed_out'
+    job.error = message
+    job.timeoutReason = reason
+    job.updatedAt = Date.now()
+    this.append(jobId, 'timed_out', { message, reason, timedOutAt: job.updatedAt })
+    return true
+  }
+
   async cancel(jobId: string) {
     const job = this.jobs.get(jobId)
     if (!job || (job.status !== 'queued' && job.status !== 'running')) return false
@@ -82,10 +104,6 @@ export class InMemoryInferenceJobStore implements InferenceJobStore {
     job.updatedAt = Date.now()
     this.append(jobId, 'cancelled', { cancelledAt: job.updatedAt })
     return true
-  }
-
-  async isCancelled(jobId: string) {
-    return this.jobs.get(jobId)?.status === 'cancelled'
   }
 
   async readEvents(jobId: string, afterId: string, count = 100) {
@@ -100,6 +118,13 @@ export class InMemoryInferenceJobStore implements InferenceJobStore {
     job.status = 'queued'
     job.updatedAt = Date.now()
     return { queueEntryId, job: { ...job }, reclaimed: true }
+  }
+
+  setTimes(jobId: string, times: { createdAt?: number; updatedAt?: number }) {
+    const job = this.jobs.get(jobId)
+    if (!job) throw new Error('Expected job')
+    if (times.createdAt !== undefined) job.createdAt = times.createdAt
+    if (times.updatedAt !== undefined) job.updatedAt = times.updatedAt
   }
 
   private finish(jobId: string, status: 'completed' | 'failed', type: 'complete' | 'failed', data: object) {

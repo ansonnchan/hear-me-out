@@ -41,7 +41,7 @@ export async function compressContext(params: {
   existingSummary?: string
   messagesToCompress: CompressibleMessage[]
   lastCompressedMessageIndex?: number
-}, provider: AIProvider | null): Promise<CompressedContext> {
+}, provider: AIProvider | null, signal?: AbortSignal): Promise<CompressedContext> {
   const lastCompressedMessageIndex =
     params.lastCompressedMessageIndex ?? Math.max(params.messagesToCompress.length - 1, 0)
 
@@ -83,7 +83,7 @@ Use neutral language.`,
             .join('\n')}`,
         },
       ],
-    }))
+    }, signal))
 
     return {
       summary: summary || localFallbackSummary(params.existingSummary, params.messagesToCompress),
@@ -91,6 +91,7 @@ Use neutral language.`,
       updatedAt: Date.now(),
     }
   } catch (error) {
+    if (signal?.aborted) throw signal.reason
     console.error('Context compression failed', error)
 
     return {
