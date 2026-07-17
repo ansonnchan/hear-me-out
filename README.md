@@ -41,7 +41,7 @@ The `/vent` route shows `PersonalitySelector`, `VentInput`, and the optional fir
 
 Submitting the text shows `ResponsePanel`, which streams the selected personality first and keeps generated responses in Zustand memory for instant tab switching. The client also keeps a temporary in-memory session message list so long sessions can retain continuity without writing vents to storage.
 
-With Redis configured, `/api/chat` validates and enqueues the anonymous request, then returns a short-lived job ID. A separate worker applies context compression, safety-aware routing, and persona selection before streaming provider output into a replayable Redis event stream. The browser consumes those events over SSE. There are no accounts, saved sessions, profiles, titles, durable history, or localStorage persistence.
+By default, `/api/chat` streams the AI response directly. Upstash can still provide rate limiting in this mode. Set `INFERENCE_USE_WORKER=true` only when a separate, long-running worker is deployed; then `/api/chat` enqueues the anonymous request and the worker publishes the response through a replayable Redis event stream. There are no accounts, saved sessions, profiles, titles, durable history, or localStorage persistence.
 
 ## Privacy-first LLM architecture
 
@@ -93,7 +93,7 @@ Run the development server:
 npm run dev
 ```
 
-When the Upstash variables are configured, run the inference worker in a second terminal:
+For optional worker mode, set `INFERENCE_USE_WORKER=true` and run the inference worker in a second terminal:
 
 ```bash
 npm run worker
@@ -112,6 +112,7 @@ GROQ_API_KEY= EXAMPLE_KEY
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 UPSTASH_REDIS_REST_URL= EXAMPLE_KEY
 UPSTASH_REDIS_REST_TOKEN= EXAMPLE_KEY
+INFERENCE_USE_WORKER=false
 INFERENCE_MAX_QUEUE_MS=60000
 INFERENCE_MAX_EXECUTION_MS=90000
 INFERENCE_MAX_SSE_WAIT_MS=120000
@@ -119,9 +120,9 @@ INFERENCE_MAX_STALL_MS=30000
 INFERENCE_WORKER_LEASE_MS=120000
 ```
 
-`GROQ_API_KEY` is optional for local UI work. Without it, the app uses mock, hard-coded responses.
+`GROQ_API_KEY` is optional for local UI work. Without it, the app uses mock, hard-coded responses locally; production returns a configuration error instead of appearing to use AI.
 
-The Upstash variables are optional for credential-free UI development. When present, `/api/chat` uses the Redis worker queue and the separately running worker is required. Without them, the app retains its direct streaming fallback.
+The Upstash variables are optional for credential-free UI development and rate limiting. Direct streaming remains the default even when Upstash is configured. Set `INFERENCE_USE_WORKER=true` only when the API and a separately hosted, long-running `npm run worker` process both have the Upstash variables. A serverless Next.js deployment by itself cannot consume the queue.
 
 The inference limits are optional and default to the values shown. The worker lease is always kept longer than the execution deadline so a healthy worker cannot have an active job reclaimed.
 

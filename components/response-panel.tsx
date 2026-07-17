@@ -55,6 +55,17 @@ function messageForStatus(status: number) {
   return 'Something went quiet. Try again in a moment.'
 }
 
+async function messageForResponse(response: Response) {
+  const fallback = messageForStatus(response.status)
+
+  try {
+    const body = await response.json() as { error?: unknown }
+    return typeof body.error === 'string' && body.error.trim() ? body.error : fallback
+  } catch {
+    return fallback
+  }
+}
+
 function parseCompressedContext(value: unknown): CompressedContext | undefined {
   if (!value || typeof value !== 'object') return undefined
 
@@ -263,6 +274,7 @@ export function ResponsePanel({
         })
 
         if (!response.ok) {
+          const errorMessage = await messageForResponse(response)
           recordClientMetric(response.status === 429 ? 'rate_limit_hit' : 'api_error', {
             personality,
             status: response.status,
@@ -270,7 +282,7 @@ export function ResponsePanel({
           })
           setErrors((current) => ({
             ...current,
-            [personality]: messageForStatus(response.status),
+            [personality]: errorMessage,
           }))
           setStatuses((current) => ({ ...current, [personality]: 'error' }))
           return

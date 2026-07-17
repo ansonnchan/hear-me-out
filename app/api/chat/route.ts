@@ -4,6 +4,7 @@ import { prepareChat } from '@/lib/chat/application-service'
 import { parseChatCommand, type ChatRequestBody } from '@/lib/chat/contracts'
 import { mockResponse } from '@/lib/chat/mock-response'
 import type { CompressedContext } from '@/lib/conversation/domain'
+import { isInferenceWorkerEnabled } from '@/lib/inference/config'
 import { RedisInferenceJobStore } from '@/lib/inference/redis-job-store'
 import { applyRateLimitHeaders, checkChatRateLimit } from '@/lib/rate-limit'
 import { getRedis } from '@/lib/redis/client'
@@ -101,7 +102,12 @@ export async function POST(request: Request) {
   }
 
   const redis = getRedis()
-  if (redis) {
+  if (isInferenceWorkerEnabled()) {
+    if (!redis) {
+      console.error('[vent.ai] api.chat.worker_not_configured', { requestId: id })
+      return quietError(503, jsonHeaders(id, rateLimit))
+    }
+
     const store = new RedisInferenceJobStore(redis)
     const jobId = crypto.randomUUID()
     const suppliedIdempotencyKey = request.headers.get('idempotency-key')?.trim().slice(0, 160)
@@ -138,6 +144,14 @@ export async function POST(request: Request) {
       console.error('[vent.ai] api.chat.enqueue_failed', { requestId: id, error })
       return quietError(503, jsonHeaders(id, rateLimit))
     }
+  }
+
+  if (!provider && process.env.NODE_ENV === 'production') {
+    console.error('[vent.ai] api.chat.provider_not_configured', { requestId: id })
+    return NextResponse.json(
+      { error: 'The AI response service is not configured. Please try again later.' },
+      { status: 503, headers: jsonHeaders(id, rateLimit) },
+    )
   }
 
   let prepared: Awaited<ReturnType<typeof prepareChat>>

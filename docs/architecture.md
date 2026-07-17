@@ -57,7 +57,7 @@ Browser GET eventsUrl using EventSource
 
 Native `EventSource` reconnects automatically and sends its last received event ID. The SSE route uses that ID as an exclusive Redis Stream cursor, preventing already-rendered tokens from being replayed.
 
-When Redis is not configured, `/api/chat` retains the Phase 1 direct streaming path. When Groq is also absent, that path streams a local mock response. This fallback is intended for credential-free UI development, not as the worker deployment mode.
+Direct streaming is the default, including when Redis is configured only for rate limiting. Setting `INFERENCE_USE_WORKER=true` opts into the queue path and requires a separately deployed, long-running worker. When Groq is absent, direct streaming uses a local mock response only outside production; production reports a configuration error.
 
 ## Redis data model
 
@@ -95,10 +95,10 @@ The worker publishes the first provider fragment immediately, then coalesces sub
 
 ## Local and deployment constraints
 
-- Worker mode requires Upstash Redis credentials in both the API and worker environments.
+- Worker mode requires `INFERENCE_USE_WORKER=true` plus Upstash Redis credentials in both the API and worker environments.
 - `npm run dev` and `npm run worker` must run as separate processes.
 - Upstash uses an HTTP client and does not support a permanently blocking stream read, so the worker and SSE route use bounded polling.
-- If Redis is configured but no worker is running, jobs remain queued until their short TTL expires.
+- If worker mode is enabled but no worker is running, jobs remain queued until their queue deadline expires.
 - A worker process must run on a host that supports a long-running Node.js process; a serverless Next.js deployment alone is insufficient.
 
 ## Current limitations

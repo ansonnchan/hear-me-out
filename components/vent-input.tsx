@@ -55,9 +55,9 @@ export function VentInput({
           disabled={isLoading}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={(event) => {
-            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+            if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault()
-              onSubmit()
+              if (!isLoading) onSubmit()
             }
           }}
           placeholder="Write your thoughts..."
