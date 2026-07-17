@@ -27,8 +27,8 @@ export function LandingHero() {
         <SiteNavigation overImage />
       </header>
 
-      <div className="pointer-events-none absolute left-[10.2%] top-[38%] hidden w-[21%] -rotate-1 text-center text-[#6c584a] lg:block">
-        <p className="font-cjk text-[clamp(.75rem,1vw,1rem)] leading-[1.9]">心に浮かんだことを、<br />言葉にしてみよう。</p>
+      <div aria-hidden="true" className="pointer-events-none absolute left-[10.2%] top-[38%] hidden w-[21%] -rotate-1 select-none text-center text-[#6c584a] lg:block">
+        <p className="font-cjk text-[clamp(1.15rem,1.8vw,2rem)] leading-[1.55]">心に浮かんだことを、<br />言葉にしてみよう。</p>
         <Cat className="mx-auto mt-2 opacity-55" size={23} strokeWidth={1.25} />
       </div>
 
