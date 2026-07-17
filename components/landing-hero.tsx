@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, Cat, LockKeyhole, Sparkles } from 'lucide-react'
 import heroArtwork from '@/assets/hear-me-out-hero-v2.png'
+import { SiteNavigation } from '@/components/site-navigation'
 
 export function LandingHero() {
   return (
@@ -25,10 +26,7 @@ export function LandingHero() {
           <span className="font-hand block text-2xl font-bold leading-none [text-shadow:0_2px_12px_rgba(25,16,12,.38)]">hear me out</span>
         </Link>
 
-        <nav className="flex items-center gap-1 rounded-full bg-[#3c2a23]/18 p-1 text-xs font-medium backdrop-blur-[3px] sm:text-sm">
-          <Link href="/" className="rounded-full bg-white/14 px-3 py-2 text-white shadow-sm sm:px-4">Home</Link>
-          <Link href="/personalities" className="rounded-full px-3 py-2 text-white/78 transition hover:bg-white/12 hover:text-white sm:px-4">Personalities</Link>
-        </nav>
+        <SiteNavigation overImage />
       </header>
 
       <div className="pointer-events-none absolute left-[10.2%] top-[38%] hidden w-[21%] -rotate-1 text-center text-[#6c584a] lg:block">

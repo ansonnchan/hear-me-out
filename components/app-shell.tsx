@@ -7,22 +7,18 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Disclaimer } from '@/components/disclaimer'
 import { PersonalityTheme } from '@/components/personality-theme'
-
-const navItems = [
-  { href: '/', label: 'Home' },
-  { href: '/personalities', label: 'Personalities' },
-  { href: '/vent', label: 'Talk now' },
-]
+import { SiteNavigation } from '@/components/site-navigation'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isLanding = pathname === '/'
+  const isVent = pathname === '/vent'
 
   return (
     <>
       <PersonalityTheme />
-      <div className="min-h-screen">
-        {!isLanding ? <header className="sticky top-0 z-50 border-b border-[#b99e82]/15 bg-[#fffaf0]/90 backdrop-blur-xl">
+      <div className={cn('min-h-screen', isVent && 'flex h-svh min-h-[700px] flex-col overflow-hidden')}>
+        {!isLanding ? <header className="sticky top-0 z-50 shrink-0 border-b border-[#b99e82]/15 bg-[#fffaf0]/90 backdrop-blur-xl">
           <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-5 py-3 sm:px-8 lg:px-10">
             <Link href="/" className="group inline-flex items-center gap-2.5" aria-label="hear me out home">
               <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#b99e82]/25 bg-white/65 text-[#9c79ca] transition group-hover:-rotate-6">
@@ -31,25 +27,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span className="font-hand block text-[20px] font-bold leading-none text-[#493a32]">hear me out</span>
             </Link>
 
-            <nav className="flex items-center gap-1 rounded-full border border-[#b99e82]/15 bg-white/45 p-1">
-              {navItems.map((item, index) => {
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      'rounded-full px-3 py-1.5 text-xs font-medium text-[#7d6a5e] transition hover:bg-white/75 hover:text-[#493a32] sm:px-4',
-                      isActive && 'bg-white text-[#493a32] shadow-sm',
-                      index === 1 && 'hidden sm:block',
-                      index === 2 && 'bg-[#6f5b50] text-white hover:bg-[#5f4c43] hover:text-white',
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                )
-              })}
-            </nav>
+            <SiteNavigation />
           </div>
         </header> : null}
 
@@ -64,6 +42,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               'mx-auto w-full',
               isLanding
                 ? 'max-w-none p-0'
+                : isVent
+                  ? 'flex min-h-0 flex-1 max-w-[1440px] px-4 py-3 sm:px-7 lg:px-10'
                 : 'max-w-[1440px] px-4 pb-8 pt-4 sm:px-7 sm:pt-6 lg:px-10',
             )}
           >
@@ -71,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </motion.main>
         </AnimatePresence>
 
-        {!isLanding ? <div className="mx-auto w-full max-w-[1440px] px-5 sm:px-8"><Disclaimer /></div> : null}
+        {!isLanding ? <div className={cn('mx-auto w-full max-w-[1440px] px-5 sm:px-8', isVent && 'shrink-0')}><Disclaimer compact={isVent} /></div> : null}
       </div>
     </>
   )

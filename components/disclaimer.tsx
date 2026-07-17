@@ -1,8 +1,8 @@
-export function Disclaimer() {
+export function Disclaimer({ compact = false }: { compact?: boolean }) {
   return (
     <footer
       className="px-6 text-center text-xs leading-5 text-muted"
-      style={{ color: 'var(--color-muted)', padding: '2rem 0 1rem' }}
+      style={{ color: 'var(--color-muted)', padding: compact ? '.45rem 0 .5rem' : '2rem 0 1rem' }}
     >
       <p>
         hear me out is not a replacement for real human connection.

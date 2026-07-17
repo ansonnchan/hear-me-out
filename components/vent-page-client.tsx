@@ -257,18 +257,18 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
       : null
 
   return (
-    <div className="mx-auto w-full max-w-[1360px] pb-3">
+    <div className="mx-auto h-full min-h-0 w-full max-w-[1360px]">
       {stage === 'selecting' ? (
-        <div className="space-y-5">
-          <section className="paper-texture paper-shadow relative overflow-hidden rounded-[18px] border border-[#cbb79f]/25 px-4 py-10 sm:px-7 sm:py-12 lg:px-10">
+        <div className="grid h-full min-h-0 gap-3 lg:grid-rows-[minmax(0,1.08fr)_minmax(0,.92fr)]">
+          <section className="paper-texture paper-shadow relative flex min-h-0 flex-col overflow-hidden rounded-[18px] border border-[#cbb79f]/25 px-4 py-5 sm:px-7 sm:py-6 lg:px-10">
             <span className="absolute left-[8%] top-[15%] h-2.5 w-2.5 rotate-45 rounded-[3px] bg-[#f1bec4]/55" />
             <span className="absolute right-[8%] top-[11%] h-2 w-2 rotate-12 rounded-full bg-[#efc4c8]/55" />
-            <div className="mx-auto mb-7 max-w-2xl text-center">
-              <p className="font-hand text-lg text-[#947864]">Who would you like to hear today?</p>
-              <h1 className="mt-1 font-hand text-4xl font-bold text-[#493a32] sm:text-5xl">Choose a personality</h1>
-              <p className="mt-3 text-sm text-[#78685d]">Each has a different way of seeing the world.</p>
+            <div className="mx-auto mb-3 max-w-2xl text-center">
+              <p className="font-hand text-base text-[#947864]">Who would you like to hear today?</p>
+              <h1 className="mt-0.5 font-hand text-3xl font-bold text-[#493a32] sm:text-4xl">Choose a personality</h1>
+              <p className="mt-1 text-xs text-[#78685d] sm:text-sm">Each has a different way of seeing the world.</p>
             </div>
-            <PersonalitySelector value={selectedPersonality} onValueChange={choosePersonality} variant="cards" className="mx-auto max-w-[1120px]" />
+            <PersonalitySelector value={selectedPersonality} onValueChange={choosePersonality} variant="cards" className="mx-auto w-full max-w-[1120px] flex-1" />
             <Cat className="absolute bottom-3 right-5 text-[#a98c77]/45" size={34} strokeWidth={1.2} />
           </section>
 
@@ -284,10 +284,10 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
           />
         </div>
       ) : (
-        <section className="paper-shadow grid min-h-[720px] overflow-hidden rounded-[18px] border border-[#c9b49c]/30 bg-[#f8efdf] lg:grid-cols-[72px_minmax(360px,440px)_1fr]">
+        <section className="paper-shadow grid h-full min-h-0 overflow-hidden rounded-[18px] border border-[#c9b49c]/30 bg-[#f8efdf] lg:grid-cols-[72px_minmax(360px,440px)_1fr]">
           <PersonalitySelector value={selectedPersonality} onValueChange={choosePersonality} variant="rail" />
 
-          <div className="paper-texture flex min-h-[620px] min-w-0 flex-col border-[#cdbba6]/40 lg:border-r">
+          <div className="paper-texture flex min-h-0 min-w-0 flex-col border-[#cdbba6]/40 lg:border-r">
             <header className="relative border-b border-[#d9c8b6]/45 px-5 py-4 text-center">
               <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[#8d7a6d]">Talking with</p>
               <div className="mt-1 flex items-center justify-center gap-2">
@@ -324,7 +324,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
             </div>
           </div>
 
-          <div className="relative min-h-[360px] overflow-hidden lg:min-h-[720px]">
+          <div className="relative min-h-[260px] overflow-hidden lg:min-h-0">
             <Image key={activePersonality} src={personalityScenes[activePersonality]} alt={`${personalities[activePersonality].name} in their illustrated space`} fill priority className="object-cover object-center" sizes="(max-width: 1024px) 100vw, 58vw" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#3c291f]/28 via-transparent to-white/5" />
             <div className="absolute bottom-4 right-4 rounded-full border border-white/30 bg-[#3b2921]/35 px-3 py-1.5 text-[10px] text-white/80 backdrop-blur-md">
