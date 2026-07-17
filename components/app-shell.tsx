@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -20,6 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {!isLanding ? <header className="sticky top-0 z-50 shrink-0 border-b border-[#b99e82]/15 bg-[#fffaf0]/90 backdrop-blur-xl">
           <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-5 py-3 sm:px-8 lg:px-10">
             <Link href="/" className="group inline-flex items-center gap-2.5" aria-label="hear me out home">
+              <Image src="/favicon.ico" alt="" width={26} height={30} unoptimized className="h-7 w-6 object-contain" />
               <span className="font-hand block text-[20px] font-bold leading-none text-[#493a32]">hear me out</span>
             </Link>
 

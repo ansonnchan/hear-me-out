@@ -19,7 +19,8 @@ export function LandingHero() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_56%_48%,rgba(54,33,25,.34)_0%,rgba(54,33,25,.18)_31%,transparent_58%)]" />
 
       <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-6 py-5 text-[#fffaf0] sm:px-9 sm:py-7">
-        <Link href="/" className="group inline-flex" aria-label="hear me out home">
+        <Link href="/" className="group inline-flex items-center gap-2.5" aria-label="hear me out home">
+          <Image src="/favicon.ico" alt="" width={32} height={37} unoptimized className="h-9 w-8 object-contain drop-shadow-[0_2px_8px_rgba(25,16,12,.28)]" />
           <span className="font-hand block text-2xl font-bold leading-none [text-shadow:0_2px_12px_rgba(25,16,12,.38)]">hear me out</span>
         </Link>
 
