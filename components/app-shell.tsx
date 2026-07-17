@@ -10,18 +10,19 @@ import { PersonalityTheme } from '@/components/personality-theme'
 
 const navItems = [
   { href: '/', label: 'Home' },
-  { href: '/#voices', label: 'Personalities' },
+  { href: '/personalities', label: 'Personalities' },
   { href: '/vent', label: 'Talk now' },
 ]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const isLanding = pathname === '/'
 
   return (
     <>
       <PersonalityTheme />
       <div className="min-h-screen">
-        <header className="sticky top-0 z-50 border-b border-[#b99e82]/15 bg-[#fffaf0]/90 backdrop-blur-xl">
+        {!isLanding ? <header className="sticky top-0 z-50 border-b border-[#b99e82]/15 bg-[#fffaf0]/90 backdrop-blur-xl">
           <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-5 py-3 sm:px-8 lg:px-10">
             <Link href="/" className="group inline-flex items-center gap-2.5" aria-label="hear me out home">
               <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#b99e82]/25 bg-white/65 text-[#9c79ca] transition group-hover:-rotate-6">
@@ -35,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
             <nav className="flex items-center gap-1 rounded-full border border-[#b99e82]/15 bg-white/45 p-1">
               {navItems.map((item, index) => {
-                const isActive = item.href === '/' ? pathname === '/' : item.href === '/vent' && pathname === '/vent'
+                const isActive = pathname === item.href
                 return (
                   <Link
                     key={item.href}
@@ -53,7 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               })}
             </nav>
           </div>
-        </header>
+        </header> : null}
 
         <AnimatePresence mode="wait">
           <motion.main
@@ -62,13 +63,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto w-full max-w-[1440px] px-4 pb-8 pt-4 sm:px-7 sm:pt-6 lg:px-10"
+            className={cn(
+              'mx-auto w-full',
+              isLanding
+                ? 'max-w-[1600px] p-2 sm:p-3 lg:p-4'
+                : 'max-w-[1440px] px-4 pb-8 pt-4 sm:px-7 sm:pt-6 lg:px-10',
+            )}
           >
             {children}
           </motion.main>
         </AnimatePresence>
 
-        <div className="mx-auto w-full max-w-[1440px] px-5 sm:px-8"><Disclaimer /></div>
+        {!isLanding ? <div className="mx-auto w-full max-w-[1440px] px-5 sm:px-8"><Disclaimer /></div> : null}
       </div>
     </>
   )
