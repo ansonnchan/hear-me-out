@@ -323,7 +323,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
         </section>
       ) : stage === 'loading' && selectedPersonality ? (
         <section className="paper-shadow relative flex h-full min-h-0 items-center justify-center overflow-hidden rounded-[18px] border border-[#c9b49c]/30 bg-[#33271f]">
-          <Image src={personalityLoadingScenes[selectedPersonality]} alt="" fill priority className="object-cover object-center" sizes="(max-width: 1440px) 100vw, 1360px" />
+          <Image src={personalityLoadingScenes[selectedPersonality]} alt="" fill priority placeholder="blur" className="object-cover object-center" sizes="(max-width: 1440px) 100vw, 1360px" />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(31,20,15,.54),rgba(46,30,22,.28)_50%,rgba(31,20,15,.52))]" />
           <div className="relative z-10 mx-auto max-w-md px-6 text-center text-[#fff4e4]">
             <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-white/25 bg-[#3d2b23]/35 text-2xl backdrop-blur-sm">{personalities[selectedPersonality].emoji}</span>
