@@ -5,11 +5,10 @@ export function Disclaimer() {
       style={{ color: 'var(--color-muted)', padding: '2rem 0 1rem' }}
     >
       <p>
-        vent.ai is not a replacement for real human connection.
+        hear me out is not a replacement for real human connection.
         <br />
         If you are struggling, please consider reaching out to someone you trust.
       </p>
     </footer>
   )
 }
-

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { PenLine } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Disclaimer } from '@/components/disclaimer'
@@ -10,7 +10,8 @@ import { PersonalityTheme } from '@/components/personality-theme'
 
 const navItems = [
   { href: '/', label: 'Home' },
-  { href: '/vent', label: 'vent.ai' },
+  { href: '/#voices', label: 'Personalities' },
+  { href: '/vent', label: 'Talk now' },
 ]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -20,49 +21,54 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <>
       <PersonalityTheme />
       <div className="min-h-screen">
-        <header className="mx-auto flex w-full max-w-6xl flex-col items-start gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <Link href="/" className="group inline-flex items-center gap-3" aria-label="vent.ai home">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--accent)] transition-colors duration-300 group-hover:border-[var(--accent)]">
-              <PenLine size={17} strokeWidth={1.8} />
-            </span>
-            <span className="font-display text-xl font-medium text-foreground">vent.ai</span>
-          </Link>
+        <header className="sticky top-0 z-50 border-b border-[#b99e82]/15 bg-[#fffaf0]/90 backdrop-blur-xl">
+          <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-5 py-3 sm:px-8 lg:px-10">
+            <Link href="/" className="group inline-flex items-center gap-2.5" aria-label="hear me out home">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#b99e82]/25 bg-white/65 text-[#9c79ca] transition group-hover:-rotate-6">
+                <Sparkles size={16} strokeWidth={1.8} />
+              </span>
+              <span>
+                <span className="font-hand block text-[20px] font-bold leading-none text-[#493a32]">hear me out</span>
+                <span className="block text-[8px] font-semibold uppercase tracking-[0.2em] text-[#8e796a]">from vent.ai</span>
+              </span>
+            </Link>
 
-          <nav className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-[var(--color-border)] bg-[rgba(255,255,255,0.035)] p-1 backdrop-blur-xl">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    'rounded-full px-3 py-1.5 text-sm text-muted transition-all duration-300 hover:text-foreground sm:px-4',
-                    isActive && 'bg-[var(--color-surface-strong)] text-foreground shadow-[0_0_28px_var(--glow)]',
-                  )}
-                >
-                  {item.label}
-                </Link>
-              )
-            })}
-          </nav>
+            <nav className="flex items-center gap-1 rounded-full border border-[#b99e82]/15 bg-white/45 p-1">
+              {navItems.map((item, index) => {
+                const isActive = item.href === '/' ? pathname === '/' : item.href === '/vent' && pathname === '/vent'
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'rounded-full px-3 py-1.5 text-xs font-medium text-[#7d6a5e] transition hover:bg-white/75 hover:text-[#493a32] sm:px-4',
+                      isActive && 'bg-white text-[#493a32] shadow-sm',
+                      index === 1 && 'hidden sm:block',
+                      index === 2 && 'bg-[#a98ad6] text-white hover:bg-[#9674c8] hover:text-white',
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </nav>
+          </div>
         </header>
 
         <AnimatePresence mode="wait">
           <motion.main
             key={pathname}
-            initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -10, filter: 'blur(6px)' }}
-            transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto w-full max-w-6xl px-5 pb-10 sm:px-8"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="mx-auto w-full max-w-[1440px] px-4 pb-8 pt-4 sm:px-7 sm:pt-6 lg:px-10"
           >
             {children}
           </motion.main>
         </AnimatePresence>
 
-        <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
-          <Disclaimer />
-        </div>
+        <div className="mx-auto w-full max-w-[1440px] px-5 sm:px-8"><Disclaimer /></div>
       </div>
     </>
   )
