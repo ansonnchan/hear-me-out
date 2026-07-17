@@ -16,9 +16,9 @@
   --color-surface-strong: rgba(255, 249, 238, 0.94);
   --color-border: rgba(99, 70, 57, 0.16);
   --color-line: rgba(99, 70, 57, 0.1);
-  --accent: #a88bd4;
-  --accent-soft: #eee4fa;
-  --glow: rgba(168, 139, 212, 0.2);
+  --accent: #9e88bf;
+  --accent-soft: #eee9f3;
+  --glow: rgba(158, 136, 191, 0.16);
 }
 
 * {
@@ -38,8 +38,8 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(circle at 8% 8%, rgba(247, 194, 161, 0.28), transparent 25rem),
-    radial-gradient(circle at 92% 18%, rgba(183, 170, 220, 0.2), transparent 24rem),
+    radial-gradient(circle at 8% 8%, rgba(231, 178, 145, 0.2), transparent 25rem),
+    radial-gradient(circle at 92% 18%, rgba(177, 191, 166, 0.17), transparent 24rem),
     linear-gradient(180deg, #fffaf1 0%, #fbf5ea 44%, #f6eddf 100%);
   color: var(--color-foreground);
   font-family: var(--font-body), 'DM Sans', system-ui, sans-serif;

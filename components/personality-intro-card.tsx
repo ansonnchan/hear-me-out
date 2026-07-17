@@ -19,7 +19,7 @@ export function PersonalityIntroCard({ personalityKey }: { personalityKey: Perso
 
   return (
     <motion.article whileHover={{ y: -5 }} transition={{ type: 'spring', stiffness: 320, damping: 24 }} className="group min-w-[210px] overflow-hidden rounded-[12px] border border-[#cdbba8]/35 bg-[#fffaf0] shadow-[0_8px_22px_rgba(91,62,43,.09)]">
-      <Link href={`/vent?personality=${personality.key}`} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#aa8ad8]">
+      <Link href={`/vent?personality=${personality.key}`} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#9e88bf]">
         <div className="relative h-[225px] overflow-hidden bg-[var(--accent-soft)]">
           <Image src={personalityImages[personality.key]} alt={`${personality.name}, an illustrated listener`} fill className="object-cover transition duration-700 group-hover:scale-[1.035]" sizes="220px" placeholder="blur" />
         </div>

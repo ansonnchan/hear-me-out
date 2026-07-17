@@ -38,7 +38,7 @@ export function PersonalitySelector({ value, onValueChange, className, variant =
     return (
       <div className={cn('grid auto-cols-[190px] grid-flow-col gap-3 overflow-x-auto px-1 pb-4 pt-2 [scrollbar-width:none] lg:grid-flow-row lg:grid-cols-5 lg:overflow-visible [&::-webkit-scrollbar]:hidden', className)}>
         {personalityList.map((personality) => (
-          <motion.button key={personality.key} type="button" onClick={() => choose(personality.key)} whileHover={{ y: -5 }} whileTap={{ scale: .985 }} className="group min-w-[190px] overflow-hidden rounded-[11px] border border-[#cdbba8]/40 bg-[#fffaf0] text-left shadow-[0_8px_22px_rgba(91,62,43,.09)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#aa8ad8]">
+          <motion.button key={personality.key} type="button" onClick={() => choose(personality.key)} whileHover={{ y: -5 }} whileTap={{ scale: .985 }} className="group min-w-[190px] overflow-hidden rounded-[11px] border border-[#cdbba8]/40 bg-[#fffaf0] text-left shadow-[0_8px_22px_rgba(91,62,43,.09)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9e88bf]">
             <span className="relative block h-[205px] overflow-hidden">
               <Image src={personalityImages[personality.key]} alt="" fill className="object-cover transition duration-500 group-hover:scale-[1.03]" sizes="205px" />
             </span>
@@ -58,7 +58,7 @@ export function PersonalitySelector({ value, onValueChange, className, variant =
         {personalityList.map((personality) => {
           const selected = active === personality.key
           return (
-            <motion.button key={personality.key} type="button" onClick={() => choose(personality.key)} whileHover={{ scale: 1.07 }} whileTap={{ scale: .96 }} title={personality.name} aria-label={`Talk with ${personality.name}`} aria-pressed={selected} className={cn('relative h-11 w-11 shrink-0 overflow-hidden rounded-full border-2 bg-[#fffaf0] shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#aa8ad8] lg:h-12 lg:w-12', selected ? 'border-[#8cae8f] ring-2 ring-[#8cae8f]/25' : 'border-white/80 opacity-80 hover:opacity-100')}>
+            <motion.button key={personality.key} type="button" onClick={() => choose(personality.key)} whileHover={{ scale: 1.07 }} whileTap={{ scale: .96 }} title={personality.name} aria-label={`Talk with ${personality.name}`} aria-pressed={selected} className={cn('relative h-11 w-11 shrink-0 overflow-hidden rounded-full border-2 bg-[#fffaf0] shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9e88bf] lg:h-12 lg:w-12', selected ? 'border-[#8cae8f] ring-2 ring-[#8cae8f]/25' : 'border-white/80 opacity-80 hover:opacity-100')}>
               <Image src={personalityAtmospheres[personality.key]} alt="" fill className="scale-110 object-cover object-top" sizes="48px" />
             </motion.button>
           )
@@ -73,7 +73,7 @@ export function PersonalitySelector({ value, onValueChange, className, variant =
         {personalityList.map((personality) => {
           const selected = active === personality.key
           return (
-            <button key={personality.key} type="button" onClick={() => choose(personality.key)} className={cn('inline-flex h-12 items-center gap-2 rounded-full border px-2 pr-3 text-xs font-medium transition', selected ? 'border-[#aa8ad8] bg-white shadow-md' : 'border-[#d8c6b2]/60 bg-white/55 text-muted hover:bg-white')}>
+            <button key={personality.key} type="button" onClick={() => choose(personality.key)} className={cn('inline-flex h-12 items-center gap-2 rounded-full border px-2 pr-3 text-xs font-medium transition', selected ? 'border-[#9e88bf] bg-white shadow-md' : 'border-[#d8c6b2]/60 bg-white/55 text-muted hover:bg-white')}>
               <span className="relative h-8 w-8 overflow-hidden rounded-full"><Image src={personalityAtmospheres[personality.key]} alt="" fill className="object-cover object-top" sizes="32px" /></span>
               {personalities[personality.key].name}
             </button>

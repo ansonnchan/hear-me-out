@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       'rounded-full px-3 py-1.5 text-xs font-medium text-[#7d6a5e] transition hover:bg-white/75 hover:text-[#493a32] sm:px-4',
                       isActive && 'bg-white text-[#493a32] shadow-sm',
                       index === 1 && 'hidden sm:block',
-                      index === 2 && 'bg-[#a98ad6] text-white hover:bg-[#9674c8] hover:text-white',
+                      index === 2 && 'bg-[#6f5b50] text-white hover:bg-[#5f4c43] hover:text-white',
                     )}
                   >
                     {item.label}

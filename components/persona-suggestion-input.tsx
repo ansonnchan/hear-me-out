@@ -41,14 +41,14 @@ export function PersonaSuggestionInput({ value, suggestion, error, isChecking = 
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="For example: I feel behind even though I’m trying my best..."
-        className="relative h-36 w-full resize-none rounded-[10px] border border-[#ddc2a1]/65 bg-[#fff7e8] px-5 py-4 text-sm leading-6 text-[#55483e] outline-none placeholder:font-hand placeholder:text-[#9e8a7a] focus:border-[#aa8ad8] focus:shadow-[0_8px_24px_rgba(0,0,0,.15)]"
+        className="relative h-36 w-full resize-none rounded-[10px] border border-[#ddc2a1]/65 bg-[#fff7e8] px-5 py-4 text-sm leading-6 text-[#55483e] outline-none placeholder:font-hand placeholder:text-[#9e8a7a] focus:border-[#9e88bf] focus:shadow-[0_8px_24px_rgba(0,0,0,.15)]"
       />
 
       <div className="relative mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-h-5 text-xs text-white/48">{error ? <span className="text-[#e2b8d0]">{error}</span> : <span>Your words stay in this session.</span>}</div>
         <div className="flex items-center justify-between gap-3 sm:justify-end">
           <span className="text-xs text-white/45">{value.length.toLocaleString()}</span>
-          <Button type="button" size="md" variant="primary" className="bg-[#aa8ad8] text-white hover:bg-[#9876ca]" onClick={onRequestSuggestion} disabled={isChecking}>
+          <Button type="button" size="md" variant="primary" className="bg-[#9e88bf] text-white hover:bg-[#8b75aa]" onClick={onRequestSuggestion} disabled={isChecking}>
             <Sparkles size={15} aria-hidden="true" />
             {isChecking ? 'Finding a voice...' : 'Suggest a voice'}
           </Button>

@@ -45,7 +45,7 @@ export function VentInput({
       <div
         className={cn(
           'relative overflow-hidden rounded-[9px] border border-[#d8c5b0]/70 bg-[#fffaf0] transition-all duration-300',
-          'shadow-[0_4px_12px_rgba(87,57,44,.06)] focus-within:border-[#aa8ad8] focus-within:shadow-[0_7px_20px_rgba(87,57,44,.1)]',
+          'shadow-[0_4px_12px_rgba(87,57,44,.06)] focus-within:border-[#9e88bf] focus-within:shadow-[0_7px_20px_rgba(87,57,44,.1)]',
           fill && 'flex min-h-0 flex-1',
         )}
       >
@@ -75,7 +75,7 @@ export function VentInput({
 
       <div className="flex items-center justify-between gap-3">
         <p className="min-h-4 text-[10px] text-[#a15f59]">{error}</p>
-        <Button type="submit" variant="primary" size="sm" disabled={isLoading} className="h-9 bg-[#aa8ad8] px-4 text-white shadow-[0_5px_14px_rgba(91,61,117,.2)] hover:bg-[#9876ca]">
+        <Button type="submit" variant="primary" size="sm" disabled={isLoading} className="h-9 bg-[#9e88bf] px-4 text-white shadow-[0_5px_14px_rgba(91,61,117,.16)] hover:bg-[#8b75aa]">
           {isLoading ? 'Listening...' : 'Send'}
           <Send size={13} />
         </Button>
