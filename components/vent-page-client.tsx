@@ -10,13 +10,14 @@ import { ResponsePanel } from '@/components/response-panel'
 import { VentInput } from '@/components/vent-input'
 import { routePersona, type PersonaRouteResult } from '@/lib/ai/persona-router'
 import { recordClientMetric } from '@/lib/client-metrics'
-import { personalityPortraits, personalityScenes } from '@/lib/personality-assets'
+import { personalityLoadingScenes, personalityPortraits, personalityScenes } from '@/lib/personality-assets'
 import { personalities, personalityList, type PersonalityKey } from '@/lib/personalities'
-import { cn } from '@/lib/utils'
 import { useVentStore } from '@/store/vent-store'
 import heroArtwork from '@/assets/hear-me-out-hero-v2.png'
+import matchingCharactersLeft from '@/assets/matching-characters-left.png'
+import matchingCharactersRight from '@/assets/matching-characters-right.png'
 
-type VentStage = 'selecting' | 'suggesting' | 'writing'
+type VentStage = 'selecting' | 'suggesting' | 'loading' | 'writing'
 type GentlePersona = Extract<PersonalityKey, 'cotton' | 'angel'>
 
 interface VentPageClientProps {
@@ -24,6 +25,13 @@ interface VentPageClientProps {
 }
 
 const PERSONA_SUGGESTION_MIN_CHARS = 50
+const loadingCopy: Record<PersonalityKey, { title: string; description: string }> = {
+  cotton: { title: 'Making a soft place for your thought…', description: 'Cotton is gathering a little gentleness.' },
+  aristotle: { title: 'Opening the right page…', description: 'Aristotle is tracing the threads of your thought.' },
+  'venerable-ming': { title: 'Letting the water settle…', description: 'Ming is pouring a quiet cup of tea.' },
+  angel: { title: 'Saving a little light for you…', description: 'Angel is finding the hopeful thread.' },
+  'auntie-zhang': { title: 'Getting straight to the point…', description: 'Auntie Zhang is readying an honest word.' },
+}
 const elevatedSafetyPatterns = [
   /\bi\s+can(?:'|no)t\s+(?:go\s+on|do\s+this|take\s+it|cope)\b/i,
   /\bi\s+do\s+not\s+want\s+to\s+(?:be\s+here|exist|wake\s+up)\b/i,
@@ -106,13 +114,20 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
     setActivePersonality(initialPersonality)
   }, [initialPersonality, setActivePersonality])
 
+  useEffect(() => {
+    if (stage !== 'loading' || !selectedPersonality) return
+
+    const timeout = window.setTimeout(() => setStage('writing'), 1800)
+    return () => window.clearTimeout(timeout)
+  }, [selectedPersonality, stage])
+
   function choosePersonality(personality: PersonalityKey) {
     recordClientMetric('personality_switch', { personality })
     setSelectedPersonality(personality)
     setActivePersonality(personality)
     setSuggestionError(null)
     setPersonaSuggestion(null)
-    setStage('writing')
+    setStage('loading')
   }
 
   function changeSuggestionText(value: string) {
@@ -300,21 +315,25 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
               variant="scene"
             />
           </div>
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between px-5" aria-label="Five listening personalities are ready to help">
-            <div className="flex items-end -space-x-4">
-              {personalityList.slice(0, 2).map((personality, index) => (
-                <span key={personality.key} className={cn('relative block h-24 w-20 overflow-hidden rounded-t-[44%] opacity-35 [mask-image:linear-gradient(to_bottom,black_0%,black_72%,transparent_100%)]', index === 1 && 'h-28 w-24 opacity-42')}>
-                  <Image src={personalityPortraits[personality.key]} alt="" fill className="origin-top scale-125 object-cover object-top" sizes="96px" />
-                </span>
-              ))}
-            </div>
-            <div className="flex items-end -space-x-5">
-              {personalityList.slice(2).map((personality, index) => (
-                <span key={personality.key} className={cn('relative block h-24 w-20 overflow-hidden rounded-t-[44%] opacity-35 [mask-image:linear-gradient(to_bottom,black_0%,black_72%,transparent_100%)]', index === 1 && 'h-28 w-24 opacity-42', index === 2 && 'h-32 w-28 opacity-48')}>
-                  <Image src={personalityPortraits[personality.key]} alt="" fill className="origin-top scale-125 object-cover object-top" sizes="112px" />
-                </span>
-              ))}
-            </div>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between" aria-label="Five listening personalities are ready to help">
+            <Image src={matchingCharactersLeft} alt="" className="h-auto w-[clamp(210px,25vw,360px)] opacity-45" sizes="(max-width: 768px) 210px, 360px" />
+            <Image src={matchingCharactersRight} alt="" className="h-auto w-[clamp(260px,32vw,450px)] opacity-45" sizes="(max-width: 768px) 260px, 450px" />
+          </div>
+        </section>
+      ) : stage === 'loading' && selectedPersonality ? (
+        <section className="paper-shadow relative flex h-full min-h-0 items-center justify-center overflow-hidden rounded-[18px] border border-[#c9b49c]/30 bg-[#33271f]">
+          <Image src={personalityLoadingScenes[selectedPersonality]} alt="" fill priority className="object-cover object-center" sizes="(max-width: 1440px) 100vw, 1360px" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(31,20,15,.54),rgba(46,30,22,.28)_50%,rgba(31,20,15,.52))]" />
+          <div className="relative z-10 mx-auto max-w-md px-6 text-center text-[#fff4e4]">
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-white/25 bg-[#3d2b23]/35 text-2xl backdrop-blur-sm">{personalities[selectedPersonality].emoji}</span>
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[.17em] text-white/75">Listening with {personalities[selectedPersonality].name}</p>
+            <h1 className="mt-3 font-hand text-3xl font-bold leading-tight [text-shadow:0_2px_14px_rgba(25,14,9,.55)] sm:text-4xl">{loadingCopy[selectedPersonality].title}</h1>
+            <p className="mt-3 text-sm leading-6 text-white/80">{loadingCopy[selectedPersonality].description}</p>
+            <span className="mx-auto mt-7 flex w-fit items-center gap-1.5" aria-label="Loading">
+              <i className="h-2 w-2 animate-bounce rounded-full bg-[#fff0d8] [animation-delay:-.2s]" />
+              <i className="h-2 w-2 animate-bounce rounded-full bg-[#fff0d8] [animation-delay:-.1s]" />
+              <i className="h-2 w-2 animate-bounce rounded-full bg-[#fff0d8]" />
+            </span>
           </div>
         </section>
       ) : (

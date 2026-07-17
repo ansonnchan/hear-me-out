@@ -56,7 +56,7 @@ export function PersonaSuggestionInput({ value, suggestion, error, isChecking = 
           <span className={cn('text-xs text-white/45', isScene && 'text-[#fff1df]/65')}>{value.length.toLocaleString()}</span>
           <Button type="button" size="md" variant="primary" className="bg-[#9e88bf] text-white shadow-[0_7px_18px_rgba(34,19,42,.26)] hover:bg-[#8b75aa]" onClick={onRequestSuggestion} disabled={isChecking}>
             <Sparkles size={15} aria-hidden="true" />
-            {isChecking ? 'Finding a voice...' : 'Suggest a voice'}
+            {isChecking ? 'Finding a lens...' : 'Suggest a lens'}
           </Button>
         </div>
       </div>
