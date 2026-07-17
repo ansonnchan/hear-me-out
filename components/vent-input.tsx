@@ -1,6 +1,7 @@
 'use client'
 
 import { FormEvent, useEffect, useRef } from 'react'
+import { Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -29,7 +30,7 @@ export function VentInput({
     const textarea = textareaRef.current
     if (!textarea) return
     if (fill) return
-    const minHeight = compact ? 160 : 240
+    const minHeight = compact ? 68 : 180
     textarea.style.height = 'auto'
     textarea.style.height = `${Math.max(textarea.scrollHeight, minHeight)}px`
   }, [compact, fill, value])
@@ -40,12 +41,11 @@ export function VentInput({
   }
 
   return (
-    <form onSubmit={submit} className={cn('space-y-4', fill && 'flex h-full min-h-0 flex-col')}>
+    <form onSubmit={submit} className={cn('space-y-2.5', fill && 'flex h-full min-h-0 flex-col')}>
       <div
         className={cn(
-          'glass-panel relative overflow-hidden rounded-[8px] transition-all duration-300',
-          'border-[color-mix(in_srgb,var(--accent)_30%,transparent)] shadow-[0_0_46px_color-mix(in_srgb,var(--accent)_24%,transparent)]',
-          'focus-within:border-[var(--accent)] focus-within:shadow-[0_0_68px_color-mix(in_srgb,var(--accent)_34%,transparent)]',
+          'relative overflow-hidden rounded-[9px] border border-[#d8c5b0]/70 bg-[#fffaf0] transition-all duration-300',
+          'shadow-[0_4px_12px_rgba(87,57,44,.06)] focus-within:border-[#9e88bf] focus-within:shadow-[0_7px_20px_rgba(87,57,44,.1)]',
           fill && 'flex min-h-0 flex-1',
         )}
       >
@@ -60,23 +60,24 @@ export function VentInput({
               onSubmit()
             }
           }}
-          placeholder="What's on your mind today?"
+          placeholder="Write your thoughts..."
           className={cn(
-            'w-full resize-none bg-transparent px-6 py-6 text-lg leading-8 text-foreground outline-none placeholder:text-foreground/30 disabled:opacity-70 sm:px-8 sm:py-8 sm:text-xl',
-            compact ? 'min-h-[160px]' : 'min-h-[240px]',
+            'w-full resize-none bg-transparent px-4 py-3 pr-12 text-sm leading-6 text-[#4f433b] outline-none placeholder:font-hand placeholder:text-[#a08d7f] disabled:opacity-70',
+            compact ? 'min-h-[68px]' : 'min-h-[180px]',
             fill && 'h-full min-h-0 overflow-y-auto',
           )}
-          rows={6}
+          rows={compact ? 2 : 6}
         />
-        <div className="pointer-events-none absolute bottom-4 right-5 text-xs text-muted">
+        <div className="pointer-events-none absolute bottom-2 right-3 text-[9px] text-muted">
           {value.length.toLocaleString()}
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="min-h-5 text-sm text-[var(--accent)]">{error}</p>
-        <Button type="submit" variant="primary" size="lg" disabled={isLoading}>
-          {isLoading ? 'Listening...' : 'Let it out'}
+      <div className="flex items-center justify-between gap-3">
+        <p className="min-h-4 text-[10px] text-[#a15f59]">{error}</p>
+        <Button type="submit" variant="primary" size="sm" disabled={isLoading} className="h-9 bg-[#9e88bf] px-4 text-white shadow-[0_5px_14px_rgba(91,61,117,.16)] hover:bg-[#8b75aa]">
+          {isLoading ? 'Listening...' : 'Send'}
+          <Send size={13} />
         </Button>
       </div>
     </form>

@@ -14,7 +14,7 @@ export function SessionCard({ id, title, originalText, createdAt, generatedPerso
   return (
     <Link
       href={`/session/${id}`}
-      className="glass-panel group block rounded-[8px] p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--accent)_38%,transparent)] hover:shadow-lift"
+      className="glass-panel group block rounded-2xl p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--accent)_38%,transparent)] hover:shadow-lift"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-2">
@@ -40,4 +40,3 @@ export function SessionCard({ id, title, originalText, createdAt, generatedPerso
     </Link>
   )
 }
-

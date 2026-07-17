@@ -9,7 +9,7 @@ import type { PersonaRouteResult } from '@/lib/ai/persona-router'
 import { recordClientMetric } from '@/lib/client-metrics'
 import { openInferenceEventStream } from '@/lib/inference/sse-client'
 import { shouldResetInferenceAttempt } from '@/lib/inference/terminal-events'
-import { personalityAtmospheres } from '@/lib/personality-assets'
+import { personalityPortraits } from '@/lib/personality-assets'
 import { normalizePersonalityKey, personalities, type PersonalityKey } from '@/lib/personalities'
 import { cn } from '@/lib/utils'
 import { useVentStore } from '@/store/vent-store'
@@ -502,86 +502,47 @@ export function ResponsePanel({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-      className={cn('flex h-full min-h-0 flex-col space-y-4', className)}
+      className={cn('flex min-h-0 flex-col', className)}
     >
-      <div className="glass-panel relative min-h-[260px] flex-1 overflow-hidden rounded-[8px] border-[color-mix(in_srgb,var(--accent)_30%,transparent)] p-5 shadow-[0_0_46px_color-mix(in_srgb,var(--accent)_24%,transparent)] transition-all duration-400 ease-in-out sm:p-6">
-        <div
-          className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-70 transition-colors duration-400"
-          style={{
-            background: `linear-gradient(180deg, ${active.glow}, transparent)`,
-          }}
-        />
+      <AnimatePresence mode="wait">
+        <motion.div key={activePersonality} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: .3 }} className="space-y-5">
+          {safetyNote ? <div className="mx-auto w-fit rounded-full border border-[#d8c5b2]/60 bg-white/65 px-3 py-1 text-[10px] text-[#806d60]">{safetyNote}</div> : null}
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activePersonality}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-            className="relative flex h-full min-h-[220px] flex-col"
-          >
-            {safetyNote ? (
-              <div className="mb-4 inline-flex w-fit rounded-full border border-[var(--color-border)] bg-[rgba(255,255,255,0.045)] px-3 py-1 text-xs text-muted">
-                {safetyNote}
+          <div>
+            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold text-[#817064]">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#92b4b2] text-[9px] text-white">You</span>
+              You
+            </div>
+            <div className="ml-7 max-w-[88%] rounded-[10px_10px_10px_3px] border border-[#c9d5b6]/55 bg-[#dfe8cf] px-4 py-3 text-sm leading-6 text-[#4e493f] shadow-[0_5px_14px_rgba(82,71,55,.07)]">
+              {originalText}
+              <span className="mt-1 block text-right text-[9px] text-[#7f806e]">just now</span>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold text-[#817064]">
+              <span className="relative h-5 w-5 overflow-hidden rounded-full border border-white shadow-sm"><Image src={personalityPortraits[activePersonality]} alt="" fill className="object-cover object-top" sizes="20px" /></span>
+              {active.name}
+            </div>
+            <div className="relative ml-7 max-w-[94%] rotate-[-.25deg] rounded-[7px_10px_10px_3px] border border-[#d8c2a6]/70 bg-[#fff7e7] px-4 py-4 shadow-[0_7px_18px_rgba(88,62,43,.09)]">
+              <span className="absolute -top-1.5 right-5 h-3 w-12 rotate-2 bg-[#ead8b8]/55" />
+              <div className="whitespace-pre-wrap font-hand text-[16px] leading-7 text-[#51443a]">
+                {activeResponse}
+                {isLoading ? <ThinkingDots /> : null}
               </div>
-            ) : null}
+              {!hasResponse && !isLoading ? (
+                <Button type="button" variant="secondary" size="sm" className="mt-3" onClick={() => { recordClientMetric('hear_from_clicked', { personality: activePersonality }); generateResponse(activePersonality) }}>Try again</Button>
+              ) : null}
+            </div>
+          </div>
 
-            {hasResponse || isLoading ? (
-              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
-                <p className="border-l border-[color-mix(in_srgb,var(--accent)_36%,transparent)] pl-4 text-sm leading-6 text-muted">
-                  {originalText}
-                </p>
-                <div className="whitespace-pre-wrap text-lg leading-8 text-foreground/88">
-                  {activeResponse}
-                  {isLoading ? <ThinkingDots /> : null}
-                </div>
+          {activeError ? <p className="ml-7 text-xs text-[#a15f59]">{activeError}</p> : null}
 
-                {activeError ? <p className="text-sm text-[var(--accent)]">{activeError}</p> : null}
-              </div>
-            ) : (
-              <div className="flex min-h-[260px] flex-1 flex-col items-center justify-center gap-5 text-center">
-                <div className="relative h-32 w-32 overflow-hidden rounded-full border border-[color-mix(in_srgb,var(--accent)_36%,transparent)] bg-[rgba(255,255,255,0.04)] shadow-[0_0_42px_var(--glow)]">
-                  <Image
-                    src={personalityAtmospheres[activePersonality]}
-                    alt=""
-                    fill
-                    className="object-cover object-top opacity-90"
-                    sizes="128px"
-                  />
-                </div>
-                {activeError ? <p className="text-sm text-[var(--accent)]">{activeError}</p> : null}
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="lg"
-                  className="px-8 text-lg shadow-[0_0_42px_color-mix(in_srgb,var(--accent)_24%,transparent)]"
-                  onClick={() => {
-                    recordClientMetric('hear_from_clicked', { personality: activePersonality })
-                    generateResponse(activePersonality)
-                  }}
-                >
-                  Vent again
-                </Button>
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="min-h-5 text-sm text-[var(--accent)]" />
-        <Button
-          type="button"
-          variant="secondary"
-          size="lg"
-          onClick={clearResponse}
-          disabled={isLoading || !hasResponse}
-          className="border-[color-mix(in_srgb,var(--accent)_48%,transparent)] bg-transparent text-[var(--accent)] shadow-[0_0_24px_color-mix(in_srgb,var(--accent)_14%,transparent)] hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_8%,transparent)]"
-        >
-          Clear response
-        </Button>
-      </div>
+          <div className="flex justify-end">
+            <button type="button" onClick={clearResponse} disabled={isLoading || !hasResponse} className="text-[10px] text-[#917e71] underline decoration-[#baa996]/50 underline-offset-4 transition hover:text-[#5e4c41] disabled:opacity-35">Clear response</button>
+          </div>
+        </motion.div>
+      </AnimatePresence>
     </motion.section>
   )
 }

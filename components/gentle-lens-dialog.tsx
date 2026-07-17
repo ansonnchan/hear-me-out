@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { personalityAtmospheres } from '@/lib/personality-assets'
+import { personalityPortraits } from '@/lib/personality-assets'
 import { personalities, type PersonalityKey } from '@/lib/personalities'
 
 type GentlePersona = Extract<PersonalityKey, 'cotton' | 'angel'>
@@ -23,8 +23,8 @@ export function GentleLensDialog({ open, currentPersonality, onChoose, onClose }
   const current = currentPersonality ? personalities[currentPersonality] : null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/78 px-5">
-      <div className="relative w-full max-w-md rounded-[8px] border border-[color-mix(in_srgb,var(--accent)_34%,transparent)] bg-[#121417] p-5 shadow-[0_0_64px_var(--glow)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#392821]/55 px-5 backdrop-blur-sm">
+      <div className="paper-card relative w-full max-w-md rounded-[1.75rem] p-6 shadow-[0_30px_90px_rgba(57,40,33,0.3)]">
         <button
           type="button"
           onClick={onClose}
@@ -43,7 +43,7 @@ export function GentleLensDialog({ open, currentPersonality, onChoose, onClose }
             {current
               ? `This seems like it may need more softness than ${current.name}. `
               : 'This seems like it may need a softer lens. '}
-            You can choose Cotton or Angel before vent.ai replies.
+            You can choose Cotton or Angel before we reply.
           </p>
         </div>
 
@@ -58,16 +58,16 @@ export function GentleLensDialog({ open, currentPersonality, onChoose, onClose }
                 variant="secondary"
                 size="lg"
                 onClick={() => onChoose(personalityKey)}
-                className="h-16 justify-start rounded-[8px] px-3 text-[#101113] shadow-none transition-transform hover:-translate-y-0.5 hover:scale-[1.02] hover:brightness-110"
+                className="h-16 justify-start rounded-2xl px-3 text-[#342620] shadow-none transition-transform hover:-translate-y-0.5 hover:scale-[1.02] hover:brightness-105"
                 style={{
                   backgroundColor: personality.accent,
                   borderColor: `color-mix(in srgb, ${personality.accent} 42%, transparent)`,
                   boxShadow: `0 0 30px ${personality.glow}`,
                 }}
               >
-                <span className="relative h-10 w-10 overflow-hidden rounded-full bg-[rgba(255,255,255,0.22)]">
+                <span className="relative h-10 w-10 overflow-hidden rounded-full bg-white/55">
                   <Image
-                    src={personalityAtmospheres[personality.key]}
+                    src={personalityPortraits[personality.key]}
                     alt=""
                     fill
                     className="object-cover object-top"

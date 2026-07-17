@@ -1,15 +1,14 @@
-export function Disclaimer() {
+export function Disclaimer({ compact = false }: { compact?: boolean }) {
   return (
     <footer
       className="px-6 text-center text-xs leading-5 text-muted"
-      style={{ color: 'var(--color-muted)', padding: '2rem 0 1rem' }}
+      style={{ color: 'var(--color-muted)', padding: compact ? '.45rem 0 .5rem' : '2rem 0 1rem' }}
     >
       <p>
-        vent.ai is not a replacement for real human connection.
+        hear me out is not a replacement for real human connection.
         <br />
         If you are struggling, please consider reaching out to someone you trust.
       </p>
     </footer>
   )
 }
-

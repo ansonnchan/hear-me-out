@@ -2,67 +2,52 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { PenLine } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Disclaimer } from '@/components/disclaimer'
 import { PersonalityTheme } from '@/components/personality-theme'
-
-const navItems = [
-  { href: '/', label: 'Home' },
-  { href: '/vent', label: 'vent.ai' },
-]
+import { SiteNavigation } from '@/components/site-navigation'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const isLanding = pathname === '/'
+  const isVent = pathname === '/vent'
 
   return (
     <>
       <PersonalityTheme />
-      <div className="min-h-screen">
-        <header className="mx-auto flex w-full max-w-6xl flex-col items-start gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <Link href="/" className="group inline-flex items-center gap-3" aria-label="vent.ai home">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--accent)] transition-colors duration-300 group-hover:border-[var(--accent)]">
-              <PenLine size={17} strokeWidth={1.8} />
-            </span>
-            <span className="font-display text-xl font-medium text-foreground">vent.ai</span>
-          </Link>
+      <div className={cn('min-h-screen', isVent && 'flex h-svh min-h-[700px] flex-col overflow-hidden')}>
+        {!isLanding ? <header className="sticky top-0 z-50 shrink-0 border-b border-[#b99e82]/15 bg-[#fffaf0]/90 backdrop-blur-xl">
+          <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-5 py-3 sm:px-8 lg:px-10">
+            <Link href="/" className="group inline-flex items-center gap-2.5" aria-label="hear me out home">
+              <span className="font-hand block text-[20px] font-bold leading-none text-[#493a32]">hear me out</span>
+            </Link>
 
-          <nav className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-[var(--color-border)] bg-[rgba(255,255,255,0.035)] p-1 backdrop-blur-xl">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    'rounded-full px-3 py-1.5 text-sm text-muted transition-all duration-300 hover:text-foreground sm:px-4',
-                    isActive && 'bg-[var(--color-surface-strong)] text-foreground shadow-[0_0_28px_var(--glow)]',
-                  )}
-                >
-                  {item.label}
-                </Link>
-              )
-            })}
-          </nav>
-        </header>
+            <SiteNavigation />
+          </div>
+        </header> : null}
 
         <AnimatePresence mode="wait">
           <motion.main
             key={pathname}
-            initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -10, filter: 'blur(6px)' }}
-            transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto w-full max-w-6xl px-5 pb-10 sm:px-8"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className={cn(
+              'mx-auto w-full',
+              isLanding
+                ? 'max-w-none p-0'
+                : isVent
+                  ? 'flex min-h-0 flex-1 max-w-[1440px] px-4 py-3 sm:px-7 lg:px-10'
+                : 'max-w-[1440px] px-4 pb-8 pt-4 sm:px-7 sm:pt-6 lg:px-10',
+            )}
           >
             {children}
           </motion.main>
         </AnimatePresence>
 
-        <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
-          <Disclaimer />
-        </div>
+        {!isLanding ? <div className={cn('mx-auto w-full max-w-[1440px] px-5 sm:px-8', isVent && 'shrink-0')}><Disclaimer compact={isVent} /></div> : null}
       </div>
     </>
   )
