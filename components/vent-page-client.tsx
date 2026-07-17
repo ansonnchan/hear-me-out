@@ -12,6 +12,7 @@ import { routePersona, type PersonaRouteResult } from '@/lib/ai/persona-router'
 import { recordClientMetric } from '@/lib/client-metrics'
 import { personalityPortraits, personalityScenes } from '@/lib/personality-assets'
 import { personalities, personalityList, type PersonalityKey } from '@/lib/personalities'
+import { cn } from '@/lib/utils'
 import { useVentStore } from '@/store/vent-store'
 import heroArtwork from '@/assets/hear-me-out-hero-v2.png'
 
@@ -260,7 +261,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
   return (
     <div className="mx-auto h-full min-h-0 w-full max-w-[1360px]">
       {stage === 'selecting' ? (
-        <section className="paper-texture paper-shadow relative flex h-full min-h-0 flex-col overflow-hidden rounded-[18px] border border-[#cbb79f]/25 px-4 py-5 sm:px-7 sm:py-6 lg:px-10">
+        <section className="paper-texture paper-shadow relative flex h-full min-h-0 flex-col overflow-hidden rounded-[18px] border border-[#cbb79f]/25 px-4 py-5 sm:px-7 sm:py-6 lg:px-4">
             <span className="absolute left-[8%] top-[15%] h-2.5 w-2.5 rotate-45 rounded-[3px] bg-[#f1bec4]/55" />
             <span className="absolute right-[8%] top-[11%] h-2 w-2 rotate-12 rounded-full bg-[#efc4c8]/55" />
             <div className="mx-auto mb-3 max-w-2xl text-center">
@@ -279,7 +280,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
       ) : stage === 'suggesting' ? (
         <section className="paper-shadow relative h-full min-h-0 overflow-hidden rounded-[18px] border border-[#c9b49c]/30 bg-[#33271f]">
           <Image src={heroArtwork} alt="A warm illustrated study for sharing a thought" fill priority className="object-cover object-center" sizes="(max-width: 1440px) 100vw, 1360px" />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(32,21,16,.78),rgba(57,36,25,.54)_52%,rgba(32,21,16,.7)),radial-gradient(circle_at_48%_55%,transparent,rgba(24,14,10,.28))]" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(32,21,16,.83),rgba(57,36,25,.6)_52%,rgba(32,21,16,.76)),radial-gradient(circle_at_48%_55%,transparent,rgba(24,14,10,.3))]" />
           <div className="absolute left-5 top-5 hidden w-44 -rotate-3 border border-[#d5b486]/45 bg-[#f7e7be]/92 p-4 text-[#6e5740] shadow-[0_8px_18px_rgba(16,10,8,.25)] lg:block">
             <p className="font-hand text-sm font-bold leading-5">We&apos;ll introduce you to someone who gets it.</p>
             <Cat className="ml-auto mt-2" size={21} strokeWidth={1.3} />
@@ -287,7 +288,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
           <button type="button" onClick={() => { setStage('selecting'); setSuggestionError(null); setPersonaSuggestion(null) }} className="absolute left-4 top-4 z-10 inline-flex h-9 items-center gap-1.5 rounded-full border border-white/20 bg-[#2d1f19]/40 px-3 text-xs font-medium text-white/90 backdrop-blur-sm transition hover:bg-white/15 lg:left-auto lg:right-4">
             <ArrowLeft size={14} /> Choose a voice
           </button>
-          <div className="relative z-10 mx-auto flex h-full min-h-0 w-full max-w-[680px] items-center px-4 py-12 sm:px-8">
+          <div className="relative z-10 mx-auto flex h-full min-h-0 w-full max-w-[620px] items-center px-4 py-12 sm:px-8">
             <PersonaSuggestionInput
               value={currentVentText}
               suggestion={visibleSuggestion}
@@ -299,12 +300,21 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
               variant="scene"
             />
           </div>
-          <div className="absolute bottom-4 right-5 z-10 flex -space-x-2.5" aria-label="Five listening personalities are ready to help">
-            {personalityList.map((personality) => (
-              <span key={personality.key} className="relative h-11 w-11 overflow-hidden rounded-full border-2 border-[#fdf3e3]/90 bg-[#fffaf0] shadow-md">
-                <Image src={personalityPortraits[personality.key]} alt="" fill className="object-cover object-top" sizes="44px" />
-              </span>
-            ))}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between px-5" aria-label="Five listening personalities are ready to help">
+            <div className="flex items-end -space-x-4">
+              {personalityList.slice(0, 2).map((personality, index) => (
+                <span key={personality.key} className={cn('relative block h-24 w-20 overflow-hidden rounded-t-[44%] opacity-35 [mask-image:linear-gradient(to_bottom,black_0%,black_72%,transparent_100%)]', index === 1 && 'h-28 w-24 opacity-42')}>
+                  <Image src={personalityPortraits[personality.key]} alt="" fill className="origin-top scale-125 object-cover object-top" sizes="96px" />
+                </span>
+              ))}
+            </div>
+            <div className="flex items-end -space-x-5">
+              {personalityList.slice(2).map((personality, index) => (
+                <span key={personality.key} className={cn('relative block h-24 w-20 overflow-hidden rounded-t-[44%] opacity-35 [mask-image:linear-gradient(to_bottom,black_0%,black_72%,transparent_100%)]', index === 1 && 'h-28 w-24 opacity-42', index === 2 && 'h-32 w-28 opacity-48')}>
+                  <Image src={personalityPortraits[personality.key]} alt="" fill className="origin-top scale-125 object-cover object-top" sizes="112px" />
+                </span>
+              ))}
+            </div>
           </div>
         </section>
       ) : (

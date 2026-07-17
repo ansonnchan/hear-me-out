@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowRight, Cat, LockKeyhole, Sparkles } from 'lucide-react'
+import { ArrowRight, Cat, LockKeyhole } from 'lucide-react'
 import heroArtwork from '@/assets/hear-me-out-hero-v2.png'
 import { SiteNavigation } from '@/components/site-navigation'
 
@@ -19,10 +19,7 @@ export function LandingHero() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_56%_48%,rgba(54,33,25,.34)_0%,rgba(54,33,25,.18)_31%,transparent_58%)]" />
 
       <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-6 py-5 text-[#fffaf0] sm:px-9 sm:py-7">
-        <Link href="/" className="group inline-flex items-center gap-3" aria-label="hear me out home">
-          <span className="flex h-9 w-9 items-center justify-center text-[#fffaf0] transition group-hover:-rotate-6">
-            <Sparkles size={28} strokeWidth={1.6} />
-          </span>
+        <Link href="/" className="group inline-flex" aria-label="hear me out home">
           <span className="font-hand block text-2xl font-bold leading-none [text-shadow:0_2px_12px_rgba(25,16,12,.38)]">hear me out</span>
         </Link>
 

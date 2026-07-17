@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Sparkles } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Disclaimer } from '@/components/disclaimer'
@@ -21,9 +20,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {!isLanding ? <header className="sticky top-0 z-50 shrink-0 border-b border-[#b99e82]/15 bg-[#fffaf0]/90 backdrop-blur-xl">
           <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-5 py-3 sm:px-8 lg:px-10">
             <Link href="/" className="group inline-flex items-center gap-2.5" aria-label="hear me out home">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#b99e82]/25 bg-white/65 text-[#9c79ca] transition group-hover:-rotate-6">
-                <Sparkles size={16} strokeWidth={1.8} />
-              </span>
               <span className="font-hand block text-[20px] font-bold leading-none text-[#493a32]">hear me out</span>
             </Link>
 

@@ -36,15 +36,15 @@ export function PersonalitySelector({ value, onValueChange, className, variant =
 
   if (variant === 'cards') {
     return (
-      <div className={cn('grid auto-cols-[168px] grid-flow-col gap-3 overflow-x-auto px-1 pb-3 pt-1 [scrollbar-width:none] lg:h-full lg:min-h-0 lg:grid-flow-row lg:grid-cols-5 lg:overflow-visible [&::-webkit-scrollbar]:hidden', className)}>
+      <div className={cn('grid auto-cols-[188px] grid-flow-col gap-3 overflow-x-auto px-1 pb-3 pt-1 [scrollbar-width:none] lg:h-full lg:min-h-0 lg:grid-flow-row lg:grid-cols-5 lg:content-start lg:items-start lg:gap-4 lg:overflow-visible [&::-webkit-scrollbar]:hidden', className)}>
         {personalityList.map((personality) => (
-          <motion.button key={personality.key} type="button" onClick={() => choose(personality.key)} whileHover={{ y: -4 }} whileTap={{ scale: .985 }} className="group min-w-[168px] overflow-hidden rounded-[11px] border border-[#cdbba8]/40 bg-[#fffaf0] text-left shadow-[0_8px_22px_rgba(91,62,43,.09)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9e88bf] lg:min-w-0">
-            <span className="relative block h-[clamp(142px,19vh,205px)] overflow-hidden">
-              <Image src={personalityImages[personality.key]} alt="" fill className="object-cover transition duration-500 group-hover:scale-[1.03]" sizes="205px" />
+          <motion.button key={personality.key} type="button" onClick={() => choose(personality.key)} whileHover={{ y: -4 }} whileTap={{ scale: .985 }} className="group min-w-[188px] overflow-hidden rounded-[13px] border border-[#cdbba8]/40 bg-[#fffaf0] text-left shadow-[0_10px_24px_rgba(91,62,43,.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9e88bf] lg:min-w-0 lg:self-start">
+            <span className="relative block h-[clamp(155px,22vh,230px)] overflow-hidden bg-[#e7ddd2]">
+              <Image src={personalityImages[personality.key]} alt="" fill className="object-cover object-center transition duration-500 group-hover:scale-[1.035]" sizes="(max-width: 1024px) 188px, 240px" />
             </span>
-            <span className="block min-h-[96px] border-t border-[#d9c8b6]/40 p-3">
-              <span className="font-hand block text-[17px] font-bold leading-tight text-[#493a32]">{personality.name}</span>
-              <span className="mt-1 block text-[10px] leading-[1.45] text-[#706157]">{shortDescriptions[personality.key]}</span>
+            <span className="block min-h-[102px] border-t border-[#d9c8b6]/40 p-3.5">
+              <span className="font-hand block text-lg font-bold leading-tight text-[#493a32]">{personality.name}</span>
+              <span className="mt-1.5 block text-[10px] leading-[1.45] text-[#706157]">{shortDescriptions[personality.key]}</span>
             </span>
           </motion.button>
         ))}
