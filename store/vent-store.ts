@@ -15,6 +15,7 @@ interface VentState {
   defaultPersonality: PersonalityKey
   responses: ResponseMap
   sessionMessages: VentSessionMessage[]
+  transcriptMessages: VentSessionMessage[]
   compressedContext: CompressedContext | null
   safetyNote: string | null
   nextMessageIndex: number
@@ -37,6 +38,7 @@ export const useVentStore = create<VentState>((set) => ({
   defaultPersonality,
   responses: {},
   sessionMessages: [],
+  transcriptMessages: [],
   compressedContext: null,
   safetyNote: null,
   nextMessageIndex: 0,
@@ -62,6 +64,13 @@ export const useVentStore = create<VentState>((set) => ({
           index: state.nextMessageIndex,
         },
       ],
+      transcriptMessages: [
+        ...state.transcriptMessages,
+        {
+          ...message,
+          index: state.nextMessageIndex,
+        },
+      ],
     })),
   applyCompressedContext: (compressedContext) =>
     set((state) => ({
@@ -77,6 +86,7 @@ export const useVentStore = create<VentState>((set) => ({
       currentVent: '',
       responses: {},
       sessionMessages: [],
+      transcriptMessages: [],
       compressedContext: null,
       safetyNote: null,
       nextMessageIndex: 0,

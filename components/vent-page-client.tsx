@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type UIEvent } from 'react'
 import { ArrowLeft, ArrowRight, Cat, CircleHelp, MoreHorizontal } from 'lucide-react'
 import { GentleLensDialog } from '@/components/gentle-lens-dialog'
 import { PersonaSuggestionInput } from '@/components/persona-suggestion-input'
@@ -86,6 +86,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
   const setActivePersonality = useVentStore((state) => state.setActivePersonality)
   const addSessionMessage = useVentStore((state) => state.addSessionMessage)
   const setSafetyNote = useVentStore((state) => state.setSafetyNote)
+  const resetSession = useVentStore((state) => state.resetSession)
   const [stage, setStage] = useState<VentStage>(initialPersonality ? 'writing' : 'selecting')
   const [selectedPersonality, setSelectedPersonality] = useState<PersonalityKey | null>(initialPersonality)
   const [submittedText, setSubmittedText] = useState('')
@@ -99,6 +100,8 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
   const [dismissedSuggestionKey, setDismissedSuggestionKey] = useState<string | null>(null)
   const [submittedAcceptedSuggestedPersona, setSubmittedAcceptedSuggestedPersona] = useState<PersonalityKey | null>(null)
   const [gentleLensPromptOpen, setGentleLensPromptOpen] = useState(false)
+  const transcriptScrollRef = useRef<HTMLDivElement | null>(null)
+  const shouldFollowTranscriptRef = useRef(true)
 
   const cooldownMessages: Record<PersonalityKey, string> = {
     cotton: 'Take a breath. Try again in a moment.',
@@ -120,6 +123,19 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
     const timeout = window.setTimeout(() => setStage('writing'), 1800)
     return () => window.clearTimeout(timeout)
   }, [selectedPersonality, stage])
+
+  const scrollTranscriptToLatest = useCallback(() => {
+    if (!shouldFollowTranscriptRef.current) return
+
+    const container = transcriptScrollRef.current
+    if (!container) return
+    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' })
+  }, [])
+
+  function trackTranscriptScroll(event: UIEvent<HTMLDivElement>) {
+    const container = event.currentTarget
+    shouldFollowTranscriptRef.current = container.scrollHeight - container.scrollTop - container.clientHeight < 80
+  }
 
   function choosePersonality(personality: PersonalityKey) {
     recordClientMetric('personality_switch', { personality })
@@ -221,6 +237,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
 
     setError(null)
     setLastSubmittedAt(now)
+    shouldFollowTranscriptRef.current = true
     recordClientMetric('vent_submitted', { personality, characters: trimmed.length })
     setResponses({})
     setSafetyNote(null)
@@ -238,6 +255,17 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
     setCurrentVentText('')
     setPersonaSuggestion(null)
     setGenerationKey((key) => key + 1)
+  }
+
+  function clearConversation() {
+    const personality = selectedPersonality ?? activePersonality
+
+    resetSession()
+    setActivePersonality(personality)
+    setSubmittedText('')
+    setSubmittedAcceptedSuggestedPersona(null)
+    setError(null)
+    shouldFollowTranscriptRef.current = true
   }
 
   function submit() {
@@ -355,7 +383,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
               {compressedContext ? <p className="mt-1 text-[9px] text-[#9a887b]">temporary context active</p> : null}
             </header>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
+            <div ref={transcriptScrollRef} onScroll={trackTranscriptScroll} className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
               {submittedText ? (
                   <ResponsePanel
                     key={generationKey}
@@ -363,6 +391,8 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
                     autoGenerateKey={generationKey}
                     acceptedSuggestedPersona={submittedAcceptedSuggestedPersona}
                     onGeneratingChange={setIsGenerating}
+                    onTranscriptUpdated={scrollTranscriptToLatest}
+                    onClearConversation={clearConversation}
                   />
                 ) : (
                   <div className="flex h-full min-h-[300px] flex-col items-center justify-center px-8 text-center">

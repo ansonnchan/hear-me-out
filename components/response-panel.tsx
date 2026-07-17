@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import type { CompressedContext } from '@/lib/conversation/domain'
 import type { PersonaRouteResult } from '@/lib/ai/persona-router'
@@ -45,7 +45,8 @@ interface ResponsePanelProps {
   acceptedSuggestedPersona?: PersonalityKey | null
   onPersonaSuggestion?: (suggestion: PersonaRouteResult) => void
   onGeneratingChange?: (isGenerating: boolean) => void
-  onClearPrompt?: () => void
+  onTranscriptUpdated?: () => void
+  onClearConversation?: () => void
   className?: string
 }
 
@@ -177,12 +178,14 @@ export function ResponsePanel({
   acceptedSuggestedPersona,
   onPersonaSuggestion,
   onGeneratingChange,
-  onClearPrompt,
+  onTranscriptUpdated,
+  onClearConversation,
   className,
 }: ResponsePanelProps) {
   const activePersonality = useVentStore((state) => state.activePersonality)
   const responses = useVentStore((state) => state.responses)
   const sessionMessages = useVentStore((state) => state.sessionMessages)
+  const transcriptMessages = useVentStore((state) => state.transcriptMessages)
   const compressedContext = useVentStore((state) => state.compressedContext)
   const safetyNote = useVentStore((state) => state.safetyNote)
   const setActivePersonality = useVentStore((state) => state.setActivePersonality)
@@ -498,15 +501,21 @@ export function ResponsePanel({
   const activeError = errors[activePersonality]
   const isLoading = activeStatus === 'loading'
   const hasResponse = Boolean(activeResponse)
+  const latestTranscriptMessage = transcriptMessages.at(-1)
+  const hasPendingResponse = latestTranscriptMessage?.role === 'user'
 
-  function clearResponse() {
+  useEffect(() => {
+    onTranscriptUpdated?.()
+  }, [activeError, activeResponse, isLoading, onTranscriptUpdated, transcriptMessages])
+
+  function clearConversation() {
     cancelActiveJob()
     idempotencyKeys.current.delete(`${autoGenerateKey}:${activePersonality}`)
     setStoreResponse(activePersonality, '')
     setVisiblePersonality(null)
     setErrors((current) => ({ ...current, [activePersonality]: undefined }))
     setStatuses((current) => ({ ...current, [activePersonality]: 'idle' }))
-    onClearPrompt?.()
+    onClearConversation?.()
   }
 
   return (
@@ -516,22 +525,40 @@ export function ResponsePanel({
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
       className={cn('flex min-h-0 flex-col', className)}
     >
-      <AnimatePresence mode="wait">
-        <motion.div key={activePersonality} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: .3 }} className="space-y-5">
-          {safetyNote ? <div className="mx-auto w-fit rounded-full border border-[#d8c5b2]/60 bg-white/65 px-3 py-1 text-[10px] text-[#806d60]">{safetyNote}</div> : null}
+      <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .3 }} className="space-y-5">
+        {transcriptMessages.map((message) => {
+          if (message.role === 'user') {
+            return (
+              <div key={message.index}>
+                <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold text-[#817064]">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#92b4b2] text-[9px] text-white">You</span>
+                  You
+                </div>
+                <div className="ml-7 max-w-[88%] rounded-[10px_10px_10px_3px] border border-[#c9d5b6]/55 bg-[#dfe8cf] px-4 py-3 text-sm leading-6 text-[#4e493f] shadow-[0_5px_14px_rgba(82,71,55,.07)]">
+                  {message.content}
+                </div>
+              </div>
+            )
+          }
 
-          <div>
-            <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold text-[#817064]">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#92b4b2] text-[9px] text-white">You</span>
-              You
+          const personality = message.personality ?? activePersonality
+          return (
+            <div key={message.index}>
+              <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold text-[#817064]">
+                <span className="relative h-5 w-5 overflow-hidden rounded-full border border-white shadow-sm"><Image src={personalityPortraits[personality]} alt="" fill className="object-cover object-top" sizes="20px" /></span>
+                {personalities[personality].name}
+              </div>
+              <div className="relative ml-7 max-w-[94%] rotate-[-.25deg] rounded-[7px_10px_10px_3px] border border-[#d8c2a6]/70 bg-[#fff7e7] px-4 py-4 shadow-[0_7px_18px_rgba(88,62,43,.09)]">
+                <span className="absolute -top-1.5 right-5 h-3 w-12 rotate-2 bg-[#ead8b8]/55" />
+                <div className="whitespace-pre-wrap font-hand text-[16px] leading-7 text-[#51443a]">{message.content}</div>
+              </div>
             </div>
-            <div className="ml-7 max-w-[88%] rounded-[10px_10px_10px_3px] border border-[#c9d5b6]/55 bg-[#dfe8cf] px-4 py-3 text-sm leading-6 text-[#4e493f] shadow-[0_5px_14px_rgba(82,71,55,.07)]">
-              {originalText}
-              <span className="mt-1 block text-right text-[9px] text-[#7f806e]">just now</span>
-            </div>
-          </div>
+          )
+        })}
 
+        {hasPendingResponse ? (
           <div>
+            {safetyNote ? <div className="mb-3 ml-7 w-fit rounded-full border border-[#d8c5b2]/60 bg-white/65 px-3 py-1 text-[10px] text-[#806d60]">{safetyNote}</div> : null}
             <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold text-[#817064]">
               <span className="relative h-5 w-5 overflow-hidden rounded-full border border-white shadow-sm"><Image src={personalityPortraits[activePersonality]} alt="" fill className="object-cover object-top" sizes="20px" /></span>
               {active.name}
@@ -546,15 +573,14 @@ export function ResponsePanel({
                 <Button type="button" variant="secondary" size="sm" className="mt-3" onClick={() => { recordClientMetric('hear_from_clicked', { personality: activePersonality }); generateResponse(activePersonality) }}>Try again</Button>
               ) : null}
             </div>
+            {activeError ? <p className="ml-7 mt-2 text-xs text-[#a15f59]">{activeError}</p> : null}
           </div>
+        ) : null}
 
-          {activeError ? <p className="ml-7 text-xs text-[#a15f59]">{activeError}</p> : null}
-
-          <div className="flex justify-end">
-            <button type="button" onClick={clearResponse} disabled={isLoading || !hasResponse} className="text-[10px] text-[#917e71] underline decoration-[#baa996]/50 underline-offset-4 transition hover:text-[#5e4c41] disabled:opacity-35">Clear response</button>
-          </div>
-        </motion.div>
-      </AnimatePresence>
+        <div className="flex justify-end">
+          <button type="button" onClick={clearConversation} disabled={isLoading} className="text-[10px] text-[#917e71] underline decoration-[#baa996]/50 underline-offset-4 transition hover:text-[#5e4c41] disabled:opacity-35">Clear conversation</button>
+        </div>
+      </motion.div>
     </motion.section>
   )
 }
