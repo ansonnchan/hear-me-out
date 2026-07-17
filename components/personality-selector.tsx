@@ -1,9 +1,8 @@
 'use client'
 
 import Image from 'next/image'
-import { KeyboardEvent } from 'react'
 import { motion } from 'framer-motion'
-import { personalityAtmospheres } from '@/lib/personality-assets'
+import { personalityAtmospheres, personalityImages } from '@/lib/personality-assets'
 import { recordClientMetric } from '@/lib/client-metrics'
 import { personalities, personalityList, type PersonalityKey } from '@/lib/personalities'
 import { cn } from '@/lib/utils'
@@ -13,73 +12,71 @@ interface PersonalitySelectorProps {
   value?: PersonalityKey | null
   onValueChange?: (personality: PersonalityKey) => void
   className?: string
+  variant?: 'cards' | 'rail' | 'pills'
 }
 
-export function PersonalitySelector({ value, onValueChange, className }: PersonalitySelectorProps) {
+const shortDescriptions: Record<PersonalityKey, string> = {
+  cotton: 'Soft, gentle, and always believes in better tomorrows.',
+  aristotle: 'Thinks deeply and questions everything with logic.',
+  'venerable-ming': 'Calm as water, steady as the mountain.',
+  angel: 'Kind, optimistic, and believes in the good in everything.',
+  'auntie-zhang': 'Honest, direct, and tells you what you need to hear.',
+}
+
+export function PersonalitySelector({ value, onValueChange, className, variant = 'pills' }: PersonalitySelectorProps) {
   const storeValue = useVentStore((state) => state.activePersonality)
   const setStoreValue = useVentStore((state) => state.setActivePersonality)
   const active = value === null ? null : value ?? storeValue
 
   function choose(personality: PersonalityKey) {
-    if (personality !== active) {
-      recordClientMetric('personality_switch', { personality })
-    }
-
+    if (personality !== active) recordClientMetric('personality_switch', { personality })
     setStoreValue(personality)
     onValueChange?.(personality)
   }
 
-  function blockKeyboardActivation(event: KeyboardEvent<HTMLButtonElement>) {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-    }
+  if (variant === 'cards') {
+    return (
+      <div className={cn('grid auto-cols-[190px] grid-flow-col gap-3 overflow-x-auto px-1 pb-4 pt-2 [scrollbar-width:none] lg:grid-flow-row lg:grid-cols-5 lg:overflow-visible [&::-webkit-scrollbar]:hidden', className)}>
+        {personalityList.map((personality) => (
+          <motion.button key={personality.key} type="button" onClick={() => choose(personality.key)} whileHover={{ y: -5 }} whileTap={{ scale: .985 }} className="group min-w-[190px] overflow-hidden rounded-[11px] border border-[#cdbba8]/40 bg-[#fffaf0] text-left shadow-[0_8px_22px_rgba(91,62,43,.09)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#aa8ad8]">
+            <span className="relative block h-[205px] overflow-hidden">
+              <Image src={personalityImages[personality.key]} alt="" fill className="object-cover transition duration-500 group-hover:scale-[1.03]" sizes="205px" />
+            </span>
+            <span className="block min-h-[122px] border-t border-[#d9c8b6]/40 p-3.5">
+              <span className="font-hand block text-lg font-bold text-[#493a32]">{personality.name}</span>
+              <span className="mt-1.5 block text-[11px] leading-[1.5] text-[#706157]">{shortDescriptions[personality.key]}</span>
+            </span>
+          </motion.button>
+        ))}
+      </div>
+    )
+  }
+
+  if (variant === 'rail') {
+    return (
+      <div className={cn('flex items-center justify-center gap-2 overflow-x-auto border-b border-[#d8c6b2]/45 bg-[#eadfce]/55 px-3 py-2.5 [scrollbar-width:none] lg:h-full lg:flex-col lg:justify-start lg:border-b-0 lg:border-r lg:px-2.5 lg:py-4 [&::-webkit-scrollbar]:hidden', className)}>
+        {personalityList.map((personality) => {
+          const selected = active === personality.key
+          return (
+            <motion.button key={personality.key} type="button" onClick={() => choose(personality.key)} whileHover={{ scale: 1.07 }} whileTap={{ scale: .96 }} title={personality.name} aria-label={`Talk with ${personality.name}`} aria-pressed={selected} className={cn('relative h-11 w-11 shrink-0 overflow-hidden rounded-full border-2 bg-[#fffaf0] shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#aa8ad8] lg:h-12 lg:w-12', selected ? 'border-[#8cae8f] ring-2 ring-[#8cae8f]/25' : 'border-white/80 opacity-80 hover:opacity-100')}>
+              <Image src={personalityAtmospheres[personality.key]} alt="" fill className="scale-110 object-cover object-top" sizes="48px" />
+            </motion.button>
+          )
+        })}
+      </div>
+    )
   }
 
   return (
-    <div className={cn('w-full overflow-x-auto pb-3 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', className)}>
-      <div className="mx-auto flex min-w-max justify-center gap-3 px-1">
+    <div className={cn('w-full overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', className)}>
+      <div className="mx-auto flex min-w-max justify-center gap-2 px-1">
         {personalityList.map((personality) => {
           const selected = active === personality.key
-          const activePersonality = personalities[personality.key]
-
           return (
-            <motion.button
-              key={personality.key}
-              type="button"
-              onClick={() => choose(personality.key)}
-              onKeyDown={blockKeyboardActivation}
-              animate={{ y: selected ? -3 : 0, scale: selected ? 1.035 : 1 }}
-              whileHover={{ y: selected ? -3 : -2, scale: selected ? 1.05 : 1.035 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-              className={cn(
-                'group inline-flex h-14 items-center gap-2 rounded-full border py-1.5 pl-1.5 pr-4 text-sm font-medium transition-all duration-300 ease-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-                selected
-                  ? 'scale-[1.03] bg-[var(--color-surface-strong)] text-foreground opacity-100 shadow-[0_0_42px_color-mix(in_srgb,var(--accent)_30%,transparent)]'
-                  : 'border-[var(--color-border)] bg-[rgba(255,255,255,0.025)] text-muted opacity-72 hover:bg-[var(--color-surface)] hover:text-foreground hover:opacity-100 hover:brightness-110 hover:shadow-[0_0_28px_color-mix(in_srgb,var(--accent)_18%,transparent)]',
-              )}
-              style={{
-                borderColor: selected ? activePersonality.accent : undefined,
-              }}
-              aria-pressed={selected}
-            >
-              <span
-                className={cn(
-                  'relative h-11 w-11 overflow-hidden rounded-full bg-[rgba(255,255,255,0.05)] transition-transform duration-300 ease-soft',
-                  selected ? 'scale-[1.05]' : 'group-hover:scale-[1.06]',
-                )}
-                aria-hidden="true"
-              >
-                <Image
-                  src={personalityAtmospheres[personality.key]}
-                  alt=""
-                  fill
-                  className={cn('scale-110 object-cover object-top transition-opacity duration-300', selected ? 'opacity-100' : 'opacity-80 group-hover:opacity-95')}
-                  sizes="44px"
-                />
-              </span>
-              <span className="whitespace-nowrap">{personality.name}</span>
-            </motion.button>
+            <button key={personality.key} type="button" onClick={() => choose(personality.key)} className={cn('inline-flex h-12 items-center gap-2 rounded-full border px-2 pr-3 text-xs font-medium transition', selected ? 'border-[#aa8ad8] bg-white shadow-md' : 'border-[#d8c6b2]/60 bg-white/55 text-muted hover:bg-white')}>
+              <span className="relative h-8 w-8 overflow-hidden rounded-full"><Image src={personalityAtmospheres[personality.key]} alt="" fill className="object-cover object-top" sizes="32px" /></span>
+              {personalities[personality.key].name}
+            </button>
           )
         })}
       </div>

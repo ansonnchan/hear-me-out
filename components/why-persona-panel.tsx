@@ -20,7 +20,7 @@ export function WhyPersonaPanel({
   if (!suggestion) {
     return (
       <div className={cn('text-center text-sm leading-6 text-muted', className)}>
-        Not sure who to choose? Write a little and vent.ai can suggest a lens.
+        This voice may fit what you shared.
       </div>
     )
   }
@@ -30,7 +30,7 @@ export function WhyPersonaPanel({
   return (
     <div
       className={cn(
-        'glass-panel flex flex-col gap-4 rounded-[8px] p-4 text-left sm:flex-row sm:items-center sm:justify-between',
+        'glass-panel flex flex-col gap-4 rounded-2xl p-4 text-left sm:flex-row sm:items-center sm:justify-between',
         className,
       )}
       style={{

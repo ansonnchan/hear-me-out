@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
-import { ActiveCharacter } from '@/components/active-character'
+import { Cat, MoreHorizontal } from 'lucide-react'
 import { GentleLensDialog } from '@/components/gentle-lens-dialog'
 import { PersonaSuggestionInput } from '@/components/persona-suggestion-input'
 import { PersonalitySelector } from '@/components/personality-selector'
@@ -10,8 +10,8 @@ import { ResponsePanel } from '@/components/response-panel'
 import { VentInput } from '@/components/vent-input'
 import { routePersona, type PersonaRouteResult } from '@/lib/ai/persona-router'
 import { recordClientMetric } from '@/lib/client-metrics'
-import { personalityAtmospheres } from '@/lib/personality-assets'
-import { type PersonalityKey } from '@/lib/personalities'
+import { personalityAtmospheres, personalityScenes } from '@/lib/personality-assets'
+import { personalities, type PersonalityKey } from '@/lib/personalities'
 import { useVentStore } from '@/store/vent-store'
 
 type VentStage = 'selecting' | 'writing'
@@ -165,7 +165,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
     }
 
     if (trimmed.length < PERSONA_SUGGESTION_MIN_CHARS) {
-      setSuggestionError('Write a little more so vent.ai has enough to work with.')
+      setSuggestionError('Write a little more so we have enough to find the right voice.')
       setPersonaSuggestion(null)
       setIsCheckingSuggestion(false)
       return
@@ -257,34 +257,20 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
       : null
 
   return (
-    <div className="relative mx-auto flex min-h-[calc(100vh-8.5rem)] max-w-5xl flex-col pb-4 pt-4 sm:pt-6">
-      {stage === 'writing' ? (
-        <ActiveCharacter
-          personality={activePersonality}
-          variant="peek"
-          className="pointer-events-none fixed bottom-6 right-3 z-0 hidden h-[46vh] w-24 xl:block 2xl:w-36"
-        />
-      ) : null}
-
-      <div className="relative z-10 mb-7 space-y-2 text-center">
-        <p className="text-sm text-[var(--accent)]">Explore a different perspective.</p>
-        <h1 className="text-balance font-display text-3xl font-medium leading-tight sm:text-4xl">
-          Start with what&apos;s on your mind, and see what they say.
-        </h1>
-      </div>
-
-      <div className="relative z-10 mb-2">
-        <PersonalitySelector value={selectedPersonality} onValueChange={choosePersonality} />
-      </div>
-
+    <div className="mx-auto w-full max-w-[1360px] pb-3">
       {stage === 'selecting' ? (
-        <div className="relative z-10 mx-auto w-full max-w-3xl space-y-4">
-          <div className="glass-panel rounded-[8px] p-8 text-center shadow-[0_24px_90px_rgba(0,0,0,0.34)]">
-            <p className="font-display text-3xl leading-10 text-foreground/88">
-              Whose voice do you need to hear?
-            </p>
-            <p className="mt-4 text-sm text-muted">Same thought. Different lens.</p>
-          </div>
+        <div className="space-y-5">
+          <section className="paper-texture paper-shadow relative overflow-hidden rounded-[18px] border border-[#cbb79f]/25 px-4 py-10 sm:px-7 sm:py-12 lg:px-10">
+            <span className="absolute left-[8%] top-[15%] h-2.5 w-2.5 rotate-45 rounded-[3px] bg-[#f1bec4]/55" />
+            <span className="absolute right-[8%] top-[11%] h-2 w-2 rotate-12 rounded-full bg-[#efc4c8]/55" />
+            <div className="mx-auto mb-7 max-w-2xl text-center">
+              <p className="font-hand text-lg text-[#947864]">Who would you like to hear today?</p>
+              <h1 className="mt-1 font-hand text-4xl font-bold text-[#493a32] sm:text-5xl">Choose a personality</h1>
+              <p className="mt-3 text-sm text-[#78685d]">Each has a different way of seeing the world.</p>
+            </div>
+            <PersonalitySelector value={selectedPersonality} onValueChange={choosePersonality} variant="cards" className="mx-auto max-w-[1120px]" />
+            <Cat className="absolute bottom-3 right-5 text-[#a98c77]/45" size={34} strokeWidth={1.2} />
+          </section>
 
           <PersonaSuggestionInput
             value={currentVentText}
@@ -294,42 +280,29 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
             onChange={changeSuggestionText}
             onRequestSuggestion={requestPersonaSuggestion}
             onUseSuggested={useSuggestedPersonality}
+            className="max-w-none"
           />
         </div>
       ) : (
-        <>
-          <div className="relative z-10 grid min-h-0 flex-1 gap-5 lg:grid-cols-2 lg:items-stretch">
-            <section className="flex min-h-0 flex-col">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-sm text-muted">Write what is here.</p>
-              </div>
-              <div className="min-h-0 flex-1">
-                <VentInput
-                  value={currentVentText}
-                  onChange={setCurrentVentText}
-                  onSubmit={submit}
-                  isLoading={isGenerating}
-                  error={error}
-                  compact
-                  fill
-                />
-              </div>
-            </section>
+        <section className="paper-shadow grid min-h-[720px] overflow-hidden rounded-[18px] border border-[#c9b49c]/30 bg-[#f8efdf] lg:grid-cols-[72px_minmax(360px,440px)_1fr]">
+          <PersonalitySelector value={selectedPersonality} onValueChange={choosePersonality} variant="rail" />
 
-            <section className="relative flex min-h-[360px] flex-col lg:min-h-0">
-              <div className="mb-3 flex min-h-5 items-center justify-between gap-3">
-                <p className="text-sm text-muted">Waiting for your thought.</p>
-                {compressedContext ? (
-                  <p className="hidden text-xs text-muted sm:block">Temporary session context active</p>
-                ) : null}
+          <div className="paper-texture flex min-h-[620px] min-w-0 flex-col border-[#cdbba6]/40 lg:border-r">
+            <header className="relative border-b border-[#d9c8b6]/45 px-5 py-4 text-center">
+              <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[#8d7a6d]">Talking with</p>
+              <div className="mt-1 flex items-center justify-center gap-2">
+                <span className="relative h-7 w-7 overflow-hidden rounded-full border-2 border-white shadow-sm">
+                  <Image src={personalityAtmospheres[activePersonality]} alt="" fill className="object-cover object-top" sizes="28px" />
+                </span>
+                <h1 className="font-hand text-2xl font-bold text-[#493a32]">{personalities[activePersonality].name}</h1>
+                <span className="text-lg text-[#92a883]">{personalities[activePersonality].emoji}</span>
               </div>
-              <ActiveCharacter
-                personality={activePersonality}
-                variant="portrait"
-                className="relative z-10 mb-3 flex justify-center lg:hidden"
-              />
-              <div className="relative z-10 min-h-0 flex-1">
-                {submittedText ? (
+              <MoreHorizontal className="absolute right-4 top-5 text-[#9f8b7d]" size={18} />
+              {compressedContext ? <p className="mt-1 text-[9px] text-[#9a887b]">temporary context active</p> : null}
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
+              {submittedText ? (
                   <ResponsePanel
                     key={generationKey}
                     originalText={submittedText}
@@ -338,22 +311,27 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
                     onGeneratingChange={setIsGenerating}
                   />
                 ) : (
-                  <div className="glass-panel flex h-full min-h-[320px] items-center justify-center rounded-[8px] p-8 text-center">
-                    <div className="relative h-44 w-44 overflow-hidden rounded-full border border-[color-mix(in_srgb,var(--accent)_36%,transparent)] bg-[rgba(255,255,255,0.04)] shadow-[0_0_54px_var(--glow)] sm:h-52 sm:w-52">
-                      <Image
-                        src={personalityAtmospheres[activePersonality]}
-                        alt=""
-                        fill
-                        className="object-cover object-top opacity-90"
-                        sizes="208px"
-                      />
-                    </div>
+                  <div className="flex h-full min-h-[300px] flex-col items-center justify-center px-8 text-center">
+                    <span className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-white shadow-md"><Image src={personalityAtmospheres[activePersonality]} alt="" fill className="object-cover object-top" sizes="64px" /></span>
+                    <p className="mt-4 font-hand text-xl text-[#725f52]">I&apos;m here when you&apos;re ready.</p>
+                    <p className="mt-1 max-w-xs text-xs leading-5 text-[#968377]">Write the thought exactly as it arrived. It does not have to be polished.</p>
                   </div>
                 )}
-              </div>
-            </section>
+            </div>
+
+            <div className="border-t border-[#d9c8b6]/45 bg-[#fffaf0]/75 p-3.5">
+              <VentInput value={currentVentText} onChange={setCurrentVentText} onSubmit={submit} isLoading={isGenerating} error={error} compact />
+            </div>
           </div>
-        </>
+
+          <div className="relative min-h-[360px] overflow-hidden lg:min-h-[720px]">
+            <Image key={activePersonality} src={personalityScenes[activePersonality]} alt={`${personalities[activePersonality].name} in their illustrated space`} fill priority className="object-cover object-center" sizes="(max-width: 1024px) 100vw, 58vw" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#3c291f]/28 via-transparent to-white/5" />
+            <div className="absolute bottom-4 right-4 rounded-full border border-white/30 bg-[#3b2921]/35 px-3 py-1.5 text-[10px] text-white/80 backdrop-blur-md">
+              Same thought. Different lens.
+            </div>
+          </div>
+        </section>
       )}
 
       <GentleLensDialog
