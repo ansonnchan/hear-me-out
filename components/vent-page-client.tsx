@@ -296,14 +296,15 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
         <section className="paper-shadow relative h-full min-h-0 overflow-hidden rounded-[18px] border border-[#c9b49c]/30 bg-[#33271f]">
           <Image src={heroArtwork} alt="A warm illustrated study for sharing a thought" fill priority className="object-cover object-center" sizes="(max-width: 1440px) 100vw, 1360px" />
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(32,21,16,.83),rgba(57,36,25,.6)_52%,rgba(32,21,16,.76)),radial-gradient(circle_at_48%_55%,transparent,rgba(24,14,10,.3))]" />
-          <div className="absolute left-5 top-5 hidden w-44 -rotate-3 border border-[#d5b486]/45 bg-[#f7e7be]/92 p-4 text-[#6e5740] shadow-[0_8px_18px_rgba(16,10,8,.25)] lg:block">
+          <div className="absolute left-6 top-6 z-20 hidden w-48 -rotate-3 border border-[#c99d64] bg-[#f5dfad] p-4 text-[#624931] shadow-[0_10px_24px_rgba(16,10,8,.32)] lg:block">
+            <span className="absolute left-1/2 top-0 h-5 w-20 -translate-x-1/2 -translate-y-2 rotate-2 bg-[#dfbd82]/70" />
             <p className="font-hand text-sm font-bold leading-5">We&apos;ll introduce you to someone who gets it.</p>
             <Cat className="ml-auto mt-2" size={21} strokeWidth={1.3} />
           </div>
           <button type="button" onClick={() => { setStage('selecting'); setSuggestionError(null); setPersonaSuggestion(null) }} className="absolute left-4 top-4 z-10 inline-flex h-9 items-center gap-1.5 rounded-full border border-white/20 bg-[#2d1f19]/40 px-3 text-xs font-medium text-white/90 backdrop-blur-sm transition hover:bg-white/15 lg:left-auto lg:right-4">
             <ArrowLeft size={14} /> Choose a voice
           </button>
-          <div className="relative z-10 mx-auto flex h-full min-h-0 w-full max-w-[620px] items-center px-4 py-12 sm:px-8">
+          <div className="relative z-10 mx-auto flex h-full min-h-0 w-full max-w-[760px] items-center px-4 py-12 sm:px-8">
             <PersonaSuggestionInput
               value={currentVentText}
               suggestion={visibleSuggestion}
@@ -316,8 +317,8 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
             />
           </div>
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-between" aria-label="Five listening personalities are ready to help">
-            <Image src={matchingCharactersLeft} alt="" className="h-auto w-[clamp(210px,25vw,360px)] opacity-45" sizes="(max-width: 768px) 210px, 360px" />
-            <Image src={matchingCharactersRight} alt="" className="h-auto w-[clamp(260px,32vw,450px)] opacity-45" sizes="(max-width: 768px) 260px, 450px" />
+            <Image src={matchingCharactersLeft} alt="" className="h-auto w-[clamp(210px,25vw,360px)]" sizes="(max-width: 768px) 210px, 360px" />
+            <Image src={matchingCharactersRight} alt="" className="h-auto w-[clamp(260px,32vw,450px)] translate-y-16" sizes="(max-width: 768px) 260px, 450px" />
           </div>
         </section>
       ) : stage === 'loading' && selectedPersonality ? (
