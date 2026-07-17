@@ -28,10 +28,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[#b99e82]/25 bg-white/65 text-[#9c79ca] transition group-hover:-rotate-6">
                 <Sparkles size={16} strokeWidth={1.8} />
               </span>
-              <span>
-                <span className="font-hand block text-[20px] font-bold leading-none text-[#493a32]">hear me out</span>
-                <span className="block text-[8px] font-semibold uppercase tracking-[0.2em] text-[#8e796a]">from vent.ai</span>
-              </span>
+              <span className="font-hand block text-[20px] font-bold leading-none text-[#493a32]">hear me out</span>
             </Link>
 
             <nav className="flex items-center gap-1 rounded-full border border-[#b99e82]/15 bg-white/45 p-1">
@@ -66,7 +63,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             className={cn(
               'mx-auto w-full',
               isLanding
-                ? 'max-w-[1600px] p-2 sm:p-3 lg:p-4'
+                ? 'max-w-none p-0'
                 : 'max-w-[1440px] px-4 pb-8 pt-4 sm:px-7 sm:pt-6 lg:px-10',
             )}
           >

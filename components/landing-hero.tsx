@@ -5,7 +5,7 @@ import heroArtwork from '@/assets/hear-me-out-hero-v2.png'
 
 export function LandingHero() {
   return (
-    <section className="paper-shadow relative isolate min-h-[calc(100svh-2rem)] overflow-hidden rounded-[17px] border border-[#eadbc7]/40 sm:min-h-[650px] lg:max-h-[940px]">
+    <section className="relative isolate h-svh min-h-[640px] w-full overflow-hidden">
       <Image
         src={heroArtwork}
         alt="A cozy illustrated study opening onto a cherry-blossom town and distant mountains"
@@ -14,17 +14,15 @@ export function LandingHero() {
         className="object-cover object-center"
         sizes="100vw"
       />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(27,19,16,.16)_0%,rgba(32,22,18,.06)_44%,rgba(44,28,23,.17)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(27,19,16,.16)_0%,rgba(32,22,18,.03)_44%,rgba(44,28,23,.14)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_56%_48%,rgba(54,33,25,.34)_0%,rgba(54,33,25,.18)_31%,transparent_58%)]" />
 
       <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-6 py-5 text-[#fffaf0] sm:px-9 sm:py-7">
         <Link href="/" className="group inline-flex items-center gap-3" aria-label="hear me out home">
           <span className="flex h-9 w-9 items-center justify-center text-[#fffaf0] transition group-hover:-rotate-6">
             <Sparkles size={28} strokeWidth={1.6} />
           </span>
-          <span>
-            <span className="font-hand block text-2xl font-bold leading-none [text-shadow:0_2px_12px_rgba(25,16,12,.38)]">hear me out</span>
-            <span className="mt-1 block text-[8px] font-semibold uppercase tracking-[0.22em] text-white/72">from vent.ai</span>
-          </span>
+          <span className="font-hand block text-2xl font-bold leading-none [text-shadow:0_2px_12px_rgba(25,16,12,.38)]">hear me out</span>
         </Link>
 
         <nav className="flex items-center gap-1 rounded-full bg-[#3c2a23]/18 p-1 text-xs font-medium backdrop-blur-[3px] sm:text-sm">
@@ -39,10 +37,10 @@ export function LandingHero() {
       </div>
 
       <div className="absolute left-[7%] top-1/2 z-10 w-[86%] max-w-[660px] -translate-y-[38%] text-[#fffaf1] sm:left-[41%] sm:w-[52%] sm:-translate-y-[46%] lg:left-[40%]">
-        <h1 className="font-hand text-[clamp(2.8rem,5.1vw,5.4rem)] font-normal leading-[1.03] tracking-[-0.035em] [text-shadow:0_3px_16px_rgba(46,26,18,.38)]">
+        <h1 className="font-hand text-[clamp(2.8rem,4.8vw,4.9rem)] font-normal leading-[1.03] tracking-[-0.035em] text-[#fff5e6] [text-shadow:0_3px_18px_rgba(36,21,16,.65)]">
           Same thought.<br />Different lens.
         </h1>
-        <p className="mt-5 max-w-[360px] text-[13px] leading-6 text-white/84 [text-shadow:0_2px_8px_rgba(35,21,16,.55)] sm:text-sm">
+        <p className="mt-5 max-w-[360px] text-[13px] font-medium leading-6 text-[#fff7eb]/90 [text-shadow:0_2px_10px_rgba(35,21,16,.72)] sm:text-sm">
           Share what&apos;s on your mind and hear it reflected through different perspectives.
         </p>
 
