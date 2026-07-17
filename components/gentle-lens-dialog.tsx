@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { personalityAtmospheres } from '@/lib/personality-assets'
+import { personalityPortraits } from '@/lib/personality-assets'
 import { personalities, type PersonalityKey } from '@/lib/personalities'
 
 type GentlePersona = Extract<PersonalityKey, 'cotton' | 'angel'>
@@ -67,7 +67,7 @@ export function GentleLensDialog({ open, currentPersonality, onChoose, onClose }
               >
                 <span className="relative h-10 w-10 overflow-hidden rounded-full bg-white/55">
                   <Image
-                    src={personalityAtmospheres[personality.key]}
+                    src={personalityPortraits[personality.key]}
                     alt=""
                     fill
                     className="object-cover object-top"

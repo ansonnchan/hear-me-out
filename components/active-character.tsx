@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { AnimatePresence, motion } from 'framer-motion'
-import { personalityAtmospheres } from '@/lib/personality-assets'
+import { personalityPortraits } from '@/lib/personality-assets'
 import type { PersonalityKey } from '@/lib/personalities'
 
 interface ActiveCharacterProps {
@@ -25,7 +25,7 @@ export function ActiveCharacter({ personality, className, variant = 'peek' }: Ac
         >
           <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-white bg-[var(--accent-soft)] shadow-[0_12px_32px_var(--glow)]">
             <Image
-              src={personalityAtmospheres[personality]}
+              src={personalityPortraits[personality]}
               alt=""
               fill
               className="object-cover object-top opacity-85"
@@ -48,7 +48,7 @@ export function ActiveCharacter({ personality, className, variant = 'peek' }: Ac
         className={className}
       >
         <Image
-          src={personalityAtmospheres[personality]}
+          src={personalityPortraits[personality]}
           alt=""
           className="h-full w-auto max-w-full object-contain object-right-bottom opacity-70"
           sizes="360px"

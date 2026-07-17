@@ -9,7 +9,7 @@ import type { PersonaRouteResult } from '@/lib/ai/persona-router'
 import { recordClientMetric } from '@/lib/client-metrics'
 import { openInferenceEventStream } from '@/lib/inference/sse-client'
 import { shouldResetInferenceAttempt } from '@/lib/inference/terminal-events'
-import { personalityAtmospheres } from '@/lib/personality-assets'
+import { personalityPortraits } from '@/lib/personality-assets'
 import { normalizePersonalityKey, personalities, type PersonalityKey } from '@/lib/personalities'
 import { cn } from '@/lib/utils'
 import { useVentStore } from '@/store/vent-store'
@@ -521,7 +521,7 @@ export function ResponsePanel({
 
           <div>
             <div className="mb-1.5 flex items-center gap-2 text-[10px] font-semibold text-[#817064]">
-              <span className="relative h-5 w-5 overflow-hidden rounded-full border border-white shadow-sm"><Image src={personalityAtmospheres[activePersonality]} alt="" fill className="object-cover object-top" sizes="20px" /></span>
+              <span className="relative h-5 w-5 overflow-hidden rounded-full border border-white shadow-sm"><Image src={personalityPortraits[activePersonality]} alt="" fill className="object-cover object-top" sizes="20px" /></span>
               {active.name}
             </div>
             <div className="relative ml-7 max-w-[94%] rotate-[-.25deg] rounded-[7px_10px_10px_3px] border border-[#d8c2a6]/70 bg-[#fff7e7] px-4 py-4 shadow-[0_7px_18px_rgba(88,62,43,.09)]">

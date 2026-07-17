@@ -10,7 +10,7 @@ import { ResponsePanel } from '@/components/response-panel'
 import { VentInput } from '@/components/vent-input'
 import { routePersona, type PersonaRouteResult } from '@/lib/ai/persona-router'
 import { recordClientMetric } from '@/lib/client-metrics'
-import { personalityAtmospheres, personalityScenes } from '@/lib/personality-assets'
+import { personalityPortraits, personalityScenes } from '@/lib/personality-assets'
 import { personalities, type PersonalityKey } from '@/lib/personalities'
 import { useVentStore } from '@/store/vent-store'
 
@@ -292,7 +292,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
               <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-[#8d7a6d]">Talking with</p>
               <div className="mt-1 flex items-center justify-center gap-2">
                 <span className="relative h-7 w-7 overflow-hidden rounded-full border-2 border-white shadow-sm">
-                  <Image src={personalityAtmospheres[activePersonality]} alt="" fill className="object-cover object-top" sizes="28px" />
+                  <Image src={personalityPortraits[activePersonality]} alt="" fill className="object-cover object-top" sizes="28px" />
                 </span>
                 <h1 className="font-hand text-2xl font-bold text-[#493a32]">{personalities[activePersonality].name}</h1>
                 <span className="text-lg text-[#92a883]">{personalities[activePersonality].emoji}</span>
@@ -312,7 +312,7 @@ export function VentPageClient({ initialPersonality }: VentPageClientProps) {
                   />
                 ) : (
                   <div className="flex h-full min-h-[300px] flex-col items-center justify-center px-8 text-center">
-                    <span className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-white shadow-md"><Image src={personalityAtmospheres[activePersonality]} alt="" fill className="object-cover object-top" sizes="64px" /></span>
+                    <span className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-white shadow-md"><Image src={personalityPortraits[activePersonality]} alt="" fill className="object-cover object-top" sizes="64px" /></span>
                     <p className="mt-4 font-hand text-xl text-[#725f52]">I&apos;m here when you&apos;re ready.</p>
                     <p className="mt-1 max-w-xs text-xs leading-5 text-[#968377]">Write the thought exactly as it arrived. It does not have to be polished.</p>
                   </div>

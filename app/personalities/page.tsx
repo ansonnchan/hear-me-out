@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowRight, MessageCircleHeart, Sparkles } from 'lucide-react'
-import { personalityImages, personalityScenes } from '@/lib/personality-assets'
+import { personalityPortraits, personalityScenes } from '@/lib/personality-assets'
 import { personalities, personalityList, type PersonalityKey } from '@/lib/personalities'
 import { cn } from '@/lib/utils'
 
@@ -55,7 +55,7 @@ export default function PersonalitiesPage() {
         <nav className="relative mx-auto mt-9 flex max-w-4xl snap-x gap-3 overflow-x-auto pb-3 [scrollbar-width:none] sm:justify-center [&::-webkit-scrollbar]:hidden" aria-label="Jump to a personality">
           {personalityList.map((personality) => (
             <Link key={personality.key} href={`#${personality.key}`} className="group flex min-w-[130px] snap-center items-center gap-2 rounded-full border border-[#cdbba8]/45 bg-white/65 p-1.5 pr-4 text-xs font-semibold text-[#5d4d43] shadow-sm transition hover:-translate-y-0.5 hover:bg-white">
-              <span className="relative h-9 w-9 overflow-hidden rounded-full"><Image src={personalityImages[personality.key]} alt="" fill className="object-cover object-top" sizes="36px" /></span>
+              <span className="relative h-9 w-9 overflow-hidden rounded-full"><Image src={personalityPortraits[personality.key]} alt="" fill className="object-cover object-top" sizes="36px" /></span>
               {personality.name}
             </Link>
           ))}
@@ -72,7 +72,7 @@ export default function PersonalitiesPage() {
                   <Image src={personalityScenes[personality.key]} alt={`${personality.name} in their illustrated space`} fill className="object-cover object-center" sizes="(max-width: 1024px) 100vw, 50vw" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#34231b]/28 via-transparent to-transparent" />
                   <div className="absolute bottom-5 left-5 flex items-center gap-3 rounded-full border border-white/25 bg-[#382820]/35 p-2 pr-4 text-white backdrop-blur-md">
-                    <span className="relative h-10 w-10 overflow-hidden rounded-full border-2 border-white/80"><Image src={personalityImages[personality.key]} alt="" fill className="object-cover object-top" sizes="40px" /></span>
+                    <span className="relative h-10 w-10 overflow-hidden rounded-full border-2 border-white/80"><Image src={personalityPortraits[personality.key]} alt="" fill className="object-cover object-top" sizes="40px" /></span>
                     <span className="font-hand text-lg font-bold">{personality.name}</span>
                   </div>
                 </div>
