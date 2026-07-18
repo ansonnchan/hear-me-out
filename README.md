@@ -6,6 +6,20 @@
 
 There are no accounts and no durable chat history. Your conversation stays in the browser for the current visit and disappears when the page is refreshed or closed.
 
+## Preview 
+<p align="center">
+  <img src="assets/vent.ai_pic1.png" alt="pear-program homepage" width="800">
+  <br>
+hear me out home page</em>
+</p>
+<br>
+<p align="center">
+  <img src="assets/vent.ai_pic2.png" alt="stuff" width="800">
+  <br>
+tiger mom energy 
+</em>
+</p>
+
 ## What it does
 
 - Reflects messages through five distinct personalities: Cotton, Aristotle, Venerable Ming, Angel, and Auntie Zhang.
